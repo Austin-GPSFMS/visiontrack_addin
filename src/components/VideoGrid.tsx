@@ -169,7 +169,7 @@ function VideoModal({
     () => media.filter((m) => m.mediaType === MEDIA_VIDEO),
     [media]
   );
-  const [active, setActive] = useState(0);
+  const videoRefs = useRef<Array<HTMLVideoElement | null>>([]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -179,12 +179,31 @@ function VideoModal({
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
 
-  const v = videos[active];
+  // Keep multi-channel clips loosely in sync: play/pause/seek on one applies
+  // to the others.
+  const syncing = useRef(false);
+  const syncFrom = (src: HTMLVideoElement, action: "play" | "pause" | "seek") => {
+    if (syncing.current) return;
+    syncing.current = true;
+    for (const v of videoRefs.current) {
+      if (!v || v === src) continue;
+      if (action === "play") void v.play().catch(() => undefined);
+      if (action === "pause") v.pause();
+      if (action === "seek" && Math.abs(v.currentTime - src.currentTime) > 0.3) {
+        v.currentTime = src.currentTime;
+      }
+    }
+    syncing.current = false;
+  };
+
   const title = (ev.eventTypeLabels ?? []).join(", ") || "Event video";
 
   return (
     <div className="vt-modal-backdrop" onClick={onClose}>
-      <div className="vt-modal" onClick={(e) => e.stopPropagation()}>
+      <div
+        className={`vt-modal${videos.length > 1 ? " vt-modal--wide" : ""}`}
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="vt-modal-head">
           <div>
             <div className="vt-modal-title">{title}</div>
@@ -196,21 +215,28 @@ function VideoModal({
             ✕
           </button>
         </div>
-        {v ? (
-          <video key={v.id} src={v.uri} controls autoPlay className="vt-modal-video" />
-        ) : (
+        {videos.length === 0 ? (
           <div className="vt-card-thumb-empty">No video available.</div>
-        )}
-        {videos.length > 1 && (
-          <div className="vt-modal-channels">
+        ) : (
+          <div className={`vt-modal-videos vt-modal-videos--${Math.min(videos.length, 2)}`}>
             {videos.map((m, i) => (
-              <button
-                key={m.id}
-                className={`vt-chan${i === active ? " vt-chan--active" : ""}`}
-                onClick={() => setActive(i)}
-              >
-                {m.channelLabel ?? `Channel ${m.channel ?? i}`}
-              </button>
+              <div key={m.id} className="vt-modal-videocell">
+                <video
+                  ref={(el) => {
+                    videoRefs.current[i] = el;
+                  }}
+                  src={m.uri}
+                  controls
+                  autoPlay
+                  className="vt-modal-video"
+                  onPlay={(e) => syncFrom(e.currentTarget, "play")}
+                  onPause={(e) => syncFrom(e.currentTarget, "pause")}
+                  onSeeked={(e) => syncFrom(e.currentTarget, "seek")}
+                />
+                <div className="vt-modal-chanlabel">
+                  {m.channelLabel ?? `Channel ${m.channel ?? i}`}
+                </div>
+              </div>
             ))}
           </div>
         )}

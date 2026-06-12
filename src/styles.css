@@ -255,24 +255,36 @@ body {
   background: #000;
 }
 
-.vt-modal-channels {
-  display: flex;
-  gap: 8px;
-  margin-top: 10px;
+.vt-modal--wide {
+  width: min(1380px, 96vw);
 }
 
-.vt-chan {
-  border: 1px solid #c5d0de;
-  background: #fff;
-  color: var(--vt-navy);
-  border-radius: 6px;
-  padding: 5px 14px;
+.vt-modal-videos {
+  display: grid;
+  gap: 12px;
+}
+
+.vt-modal-videos--1 {
+  grid-template-columns: 1fr;
+}
+
+.vt-modal-videos--2 {
+  grid-template-columns: 1fr 1fr;
+}
+
+.vt-modal-videocell {
+  min-width: 0;
+}
+
+.vt-modal-chanlabel {
+  text-align: center;
   font-size: 12px;
-  cursor: pointer;
+  color: #5a6b87;
+  margin-top: 6px;
 }
 
-.vt-chan--active {
-  background: var(--vt-navy);
-  color: #fff;
-  border-color: var(--vt-navy);
+@media (max-width: 900px) {
+  .vt-modal-videos--2 {
+    grid-template-columns: 1fr;
+  }
 }
