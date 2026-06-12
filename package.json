@@ -13,6 +13,7 @@
   "dependencies": {
     "@geotab/zenith": "^3.9.1",
     "@tanstack/react-query": "^5.62.7",
+    "exceljs": "^4.4.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
   },

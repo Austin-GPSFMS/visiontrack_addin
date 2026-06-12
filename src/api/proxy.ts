@@ -66,8 +66,11 @@ export function fetchEvents(query: EventsQuery): Promise<EventsResponse> {
 /** Fetch media (thumbnail/preview/video URLs) for one event. The proxy
  *  403s if the camera is outside the caller's group scope. */
 /** Read-only camera↔vehicle association report, scoped to the caller. */
-export function fetchAssociations(session: GeotabSession): Promise<AssociationsResponse> {
-  return postJson<AssociationsResponse>("/api/associations", { session });
+export function fetchAssociations(
+  session: GeotabSession,
+  groupIds?: string[]
+): Promise<AssociationsResponse> {
+  return postJson<AssociationsResponse>("/api/associations", { session, groupIds });
 }
 
 export function fetchEventMedia(params: {

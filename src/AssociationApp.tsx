@@ -13,10 +13,13 @@ import type {
   AssociationRow,
   AssociationsResponse,
   GeotabApi,
+  GeotabGroup,
   GeotabSession,
 } from "./types";
-import { friendlyError, getSession } from "./api/geotab";
+import { fetchScopedGroups, friendlyError, getSession } from "./api/geotab";
 import { fetchAssociations } from "./api/proxy";
+import { GroupFilterPicker } from "./components/GroupFilterPicker";
+import { exportAssociations } from "./utils/exportAssociations";
 
 interface AppProps {
   api: GeotabApi | null;
@@ -38,18 +41,23 @@ const CAMERA_MODEL_LABELS: Record<number, string> = {
 
 export default function AssociationApp({ api }: AppProps) {
   const [session, setSession] = useState<GeotabSession | null>(null);
+  const [groupsById, setGroupsById] = useState<Map<string, GeotabGroup>>(new Map());
+  const [selectedGroupIds, setSelectedGroupIds] = useState<string[]>(["GroupCompanyId"]);
   const [bootError, setBootError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [data, setData] = useState<AssociationsResponse | null>(null);
   const [filter, setFilter] = useState<"all" | AssociationRow["status"]>("all");
+  const [exporting, setExporting] = useState(false);
 
   useEffect(() => {
     if (!api) return;
     let cancelled = false;
-    getSession(api)
-      .then((s) => {
-        if (!cancelled) setSession(s);
+    Promise.all([getSession(api), fetchScopedGroups(api)])
+      .then(([s, groups]) => {
+        if (cancelled) return;
+        setSession(s);
+        setGroupsById(groups);
       })
       .catch((e) => {
         if (!cancelled) setBootError(friendlyError(e));
@@ -59,24 +67,48 @@ export default function AssociationApp({ api }: AppProps) {
     };
   }, [api]);
 
-  const load = useCallback(async () => {
+  const load = useCallback(
+    async (groupIds: string[]) => {
+      if (!session) return;
+      setLoading(true);
+      setError(null);
+      try {
+        setData(await fetchAssociations(session, groupIds));
+      } catch (e) {
+        setError(friendlyError(e));
+      } finally {
+        setLoading(false);
+      }
+    },
+    [session]
+  );
+
+  // Auto-load once the session is ready, and reload when groups change.
+  useEffect(() => {
     if (!session) return;
-    setLoading(true);
-    setError(null);
+    void load(selectedGroupIds);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session, selectedGroupIds]);
+
+  const handleExport = useCallback(async () => {
+    if (!data || !session) return;
+    setExporting(true);
     try {
-      setData(await fetchAssociations(session));
+      const groupNames = selectedGroupIds
+        .filter((id) => id !== "GroupCompanyId")
+        .map((id) => groupsById.get(id)?.name ?? id)
+        .join(", ");
+      await exportAssociations(data, {
+        database: session.database,
+        userName: session.userName,
+        groupNames,
+      });
     } catch (e) {
       setError(friendlyError(e));
     } finally {
-      setLoading(false);
+      setExporting(false);
     }
-  }, [session]);
-
-  // Auto-load once the session is ready.
-  useEffect(() => {
-    if (session && !data && !loading) void load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [session]);
+  }, [data, session, selectedGroupIds, groupsById]);
 
   if (!api) {
     return (
@@ -98,15 +130,37 @@ export default function AssociationApp({ api }: AppProps) {
     <div>
       <div className="vt-header">
         <h1>Device Association</h1>
-        <Button type="secondary" onClick={load} disabled={loading || !session}>
-          {loading ? "Loading…" : "Refresh"}
-        </Button>
+        <div className="vt-headerbtns">
+          <Button
+            type="secondary"
+            onClick={handleExport}
+            disabled={!data || exporting}
+          >
+            {exporting ? "Exporting…" : "Export to Excel"}
+          </Button>
+          <Button
+            type="secondary"
+            onClick={() => void load(selectedGroupIds)}
+            disabled={loading || !session}
+          >
+            {loading ? "Loading…" : "Refresh"}
+          </Button>
+        </div>
       </div>
 
       <p className="vt-scope-note">
         Read-only view of camera↔vehicle pairing health for vehicles within
         your group scope. Matching is on the last 6 of the VIN.
       </p>
+
+      <div className="vt-toolbar">
+        <GroupFilterPicker
+          groupsById={groupsById}
+          initialGroupIds={selectedGroupIds}
+          onChange={setSelectedGroupIds}
+          onError={(e) => setError(friendlyError(e))}
+        />
+      </div>
 
       {error && (
         <Banner type="error" onClose={() => setError(null)}>
