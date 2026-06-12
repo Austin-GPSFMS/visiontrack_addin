@@ -115,6 +115,41 @@ export interface EventMediaResponse {
   media: VtMedia[];
 }
 
+/** Device Association report (read-only) from /api/associations. */
+export type AssociationStatus = "paired" | "no_camera" | "no_vt_match" | "no_vin";
+
+export interface AssociationRow {
+  geotabDeviceId: string;
+  geotabDeviceName: string;
+  geotabGroups: string;
+  vinLast6: string;
+  vtVehicleId?: string;
+  vtVrn?: string;
+  vtVin?: string;
+  cameraHardwareId?: string;
+  status: AssociationStatus;
+}
+
+export interface UnpairedCamera {
+  id: string;
+  hardwareId?: string;
+  model?: number;
+  enabled?: boolean;
+}
+
+export interface AssociationsResponse {
+  rows: AssociationRow[];
+  unpairedCameras: UnpairedCamera[];
+  summary: {
+    scopedDevices: number;
+    paired: number;
+    noCamera: number;
+    noVtMatch: number;
+    noVin: number;
+    unpairedCameras: number;
+  };
+}
+
 /** Response envelope from the proxy /api/events endpoint. */
 export interface EventsResponse {
   events: VtEvent[];

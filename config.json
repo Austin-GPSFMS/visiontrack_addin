@@ -1,13 +1,27 @@
 {
   "name": "VisionTrack Dashboard",
   "supportEmail": "support@gpsfms.com",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "items": [
     {
-      "url": "https://austin-gpsfms.github.io/visiontrack_addin/dist/index.html",
-      "path": "ActivityLink/",
+      "menuId": "GpsfmsVisionTrackMenu",
       "menuName": {
-        "en": "VisionTrack Dashboard"
+        "en": "VisionTrack"
+      },
+      "path": "ActivityLink/"
+    },
+    {
+      "url": "https://austin-gpsfms.github.io/visiontrack_addin/dist/index.html",
+      "path": "GpsfmsVisionTrackMenu/",
+      "menuName": {
+        "en": "Dashboard"
+      }
+    },
+    {
+      "url": "https://austin-gpsfms.github.io/visiontrack_addin/dist/association.html",
+      "path": "GpsfmsVisionTrackMenu/",
+      "menuName": {
+        "en": "Device Association"
       }
     }
   ],

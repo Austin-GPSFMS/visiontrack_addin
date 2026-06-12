@@ -11,7 +11,12 @@
  * falls back to the value below.
  */
 
-import type { EventMediaResponse, EventsResponse, GeotabSession } from "../types";
+import type {
+  AssociationsResponse,
+  EventMediaResponse,
+  EventsResponse,
+  GeotabSession,
+} from "../types";
 
 const PROXY_BASE_URL: string =
   (import.meta.env.VITE_PROXY_BASE_URL as string | undefined) ??
@@ -60,6 +65,11 @@ export function fetchEvents(query: EventsQuery): Promise<EventsResponse> {
 
 /** Fetch media (thumbnail/preview/video URLs) for one event. The proxy
  *  403s if the camera is outside the caller's group scope. */
+/** Read-only camera↔vehicle association report, scoped to the caller. */
+export function fetchAssociations(session: GeotabSession): Promise<AssociationsResponse> {
+  return postJson<AssociationsResponse>("/api/associations", { session });
+}
+
 export function fetchEventMedia(params: {
   session: GeotabSession;
   eventId: string;

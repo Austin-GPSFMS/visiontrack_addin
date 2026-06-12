@@ -68,6 +68,84 @@ body {
   flex: 1 1 auto;
 }
 
+/* ---- Device Association ---- */
+
+.vt-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 4px 0 16px;
+}
+
+.vt-stat {
+  border: 1px solid #c5d0de;
+  background: #fff;
+  border-radius: 6px;
+  padding: 8px 14px;
+  font-size: 13px;
+  color: #3c4a5d;
+  cursor: pointer;
+}
+
+.vt-stat b {
+  font-size: 15px;
+  margin-right: 4px;
+}
+
+.vt-stat--ok b { color: #1c7f3e; }
+.vt-stat--warn b { color: #b87900; }
+.vt-stat--bad b { color: #c43232; }
+
+.vt-stat--active {
+  border-color: var(--vt-navy);
+  box-shadow: 0 0 0 1px var(--vt-navy) inset;
+}
+
+.vt-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  background: #fff;
+}
+
+.vt-table th {
+  text-align: left;
+  font-weight: 600;
+  color: #3c4a5d;
+  border-bottom: 2px solid #dde4ec;
+  padding: 8px 10px;
+}
+
+.vt-table td {
+  border-bottom: 1px solid #eef2f7;
+  padding: 7px 10px;
+  color: #1a1a1a;
+}
+
+.vt-table-empty {
+  text-align: center;
+  color: #8a99ad;
+  padding: 24px !important;
+}
+
+.vt-pill {
+  display: inline-block;
+  border-radius: 999px;
+  padding: 2px 10px;
+  font-size: 12px;
+}
+
+.vt-pill--ok { background: #e2f4e8; color: #1c7f3e; }
+.vt-pill--warn { background: #fdf2dc; color: #9c6a00; }
+.vt-pill--bad { background: #fbe5e5; color: #c43232; }
+
+.vt-subhead {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--vt-navy);
+  margin: 26px 0 4px;
+}
+
 /* ---- View toggle ---- */
 
 .vt-viewtoggle {

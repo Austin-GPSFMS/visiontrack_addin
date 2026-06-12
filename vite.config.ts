@@ -22,6 +22,10 @@ export default defineConfig({
     sourcemap: true,
     assetsInlineLimit: 20480,
     rollupOptions: {
+      input: {
+        index: "index.html",
+        association: "association.html",
+      },
       output: {
         entryFileNames: "assets/[name]-[hash].js",
         chunkFileNames: "assets/[name]-[hash].js",
