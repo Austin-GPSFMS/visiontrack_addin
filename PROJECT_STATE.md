@@ -178,6 +178,21 @@ What did NOT change:
 - **Org/fleet settings** (journey/idle, video-upload rules, fleet thresholds) are **not** on the
   public API — they live on the portal backend `app-api.autonomise.ai`.
 
+## Empirical API findings (verified live 2026-06-12, deployment debugging)
+
+- **TOKEN_URL is `https://login.autonomise.ai/connect/token`** (NOT `identity.autonomise.ai`,
+  which doesn't resolve — `.env.example` was wrong and has been fixed).
+- **Pagination is 1-BASED in practice**, despite the docs/skill claiming 0-based:
+  `/vehicles?page=0` returns HTTP 500 "Unexpected error"; `page=1` returns data.
+- **`/events` rejects ranges over 72 hours**: HTTP 400 "Invalid date range supplied - can only
+  query up to 72 hours of data." The proxy chunks longer ranges into sequential ≤72h windows
+  and dedupes boundary events by id.
+- **CORS for add-ins**: MyGeotab *injects* add-ins into its page (no iframe), so proxy requests
+  arrive with origin `https://my*.geotab.com` — the proxy allows the `*.geotab.com` family.
+  Likewise the add-in build needs an absolute `base` URL in vite.config.ts or assets 404
+  against my.geotab.com.
+- (These pagination/72h findings should also be added to the `vt-dev-info` skill supplement.)
+
 ## Two VisionTrack API surfaces (important)
 
 - `api.autonomise.ai` — **public Third-Party API**. OAuth `client_credentials` bearer (per-org

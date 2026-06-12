@@ -1,5 +1,10 @@
-/* Minimal layout scaffolding. Visual styling comes from @geotab/zenith so the
-   add-in matches MyGeotab's native look. Keep this file lean. */
+/* Zenith's full stylesheet MUST be bundled (same as advanced_report_builder).
+   Without it the add-in freeloads off MyGeotab's host-page Zenith CSS, which
+   only partially matches — causing unstyled flashes and checkboxes that never
+   render their checked state. */
+@import "@geotab/zenith/dist/index.css";
+
+/* Minimal layout scaffolding below. Keep this file lean. */
 
 :root {
   --vt-navy: #25477b;

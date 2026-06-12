@@ -142,7 +142,7 @@ export default function App({ api }: AppProps) {
   if (!api) {
     return (
       <div className="vt-empty">
-        <h1>VisionTrack Events</h1>
+        <h1>VisionTrack Dashboard</h1>
         <p>
           This add-in must be opened from within MyGeotab so it can read your
           session and group scope.
@@ -162,7 +162,7 @@ export default function App({ api }: AppProps) {
   return (
     <div>
       <div className="vt-header">
-        <h1>VisionTrack Events</h1>
+        <h1>VisionTrack Dashboard</h1>
       </div>
 
       <p className="vt-scope-note">
@@ -188,6 +188,7 @@ export default function App({ api }: AppProps) {
         />
 
         <Dropdown
+          width={280}
           dataItems={classificationItems}
           value={[classification]}
           onChange={(selected: ISelectionItem[]) =>
