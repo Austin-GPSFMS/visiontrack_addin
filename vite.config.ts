@@ -7,15 +7,14 @@ import react from "@vitejs/plugin-react";
  * Hosted at:
  *   https://austin-gpsfms.github.io/visiontrack_addin/dist/index.html
  *
- * `base: ""` produces CLEAN relative asset paths in the built index.html
- * — the safest choice for MyGeotab add-ins, which load the page inside an
- * iframe whose document URL already carries the repo/dist prefix. Absolute
- * (`/`) paths get duplicated by the iframe loader; `./` paths can survive as
- * literal `/./` segments that GitHub Pages 404s on. Bare relative paths
- * resolve naturally against the document URL with no artifacts.
+ * `base` MUST be the absolute Pages URL: MyGeotab does not iframe the
+ * add-in — it fetches index.html and injects it into the my.geotab.com page,
+ * so relative asset paths resolve against my.geotab.com and 404 (observed:
+ * zenith's en.json + icon.svg failing, page rendering unstyled). An absolute
+ * base makes every emitted asset URL self-contained.
  */
 export default defineConfig({
-  base: "",
+  base: "https://austin-gpsfms.github.io/visiontrack_addin/dist/",
   plugins: [react()],
   build: {
     outDir: "dist",

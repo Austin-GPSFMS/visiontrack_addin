@@ -1,5 +1,5 @@
 {
-  "name": "VisionTrack Events",
+  "name": "VisionTrack Dashboard",
   "supportEmail": "support@gpsfms.com",
   "version": "1.0.0",
   "items": [
@@ -7,9 +7,10 @@
       "url": "https://austin-gpsfms.github.io/visiontrack_addin/dist/index.html",
       "path": "ActivityLink/",
       "menuName": {
-        "en": "VisionTrack Events"
+        "en": "VisionTrack Dashboard"
       }
     }
   ],
+  "enableViewSecurityId": true,
   "isSigned": false
 }
