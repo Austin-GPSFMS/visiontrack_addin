@@ -63,7 +63,12 @@ function useEventMedia(
       return;
     }
     let cancelled = false;
-    fetchEventMedia({ session, eventId: ev.id, hardwareId: ev.hardwareId })
+    fetchEventMedia({
+      session,
+      eventId: ev.id,
+      hardwareId: ev.hardwareId,
+      vehicleId: ev.vehicleId,
+    })
       .then((resp) => {
         mediaCache.set(ev.id, resp.media);
         if (!cancelled) setState({ loading: false, media: resp.media });

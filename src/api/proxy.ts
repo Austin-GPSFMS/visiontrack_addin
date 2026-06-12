@@ -64,6 +64,7 @@ export function fetchEventMedia(params: {
   session: GeotabSession;
   eventId: string;
   hardwareId: string;
+  vehicleId?: string;
 }): Promise<EventMediaResponse> {
   return postJson<EventMediaResponse>("/api/event-media", params);
 }
