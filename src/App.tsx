@@ -40,6 +40,7 @@ import { fetchScopedGroups, friendlyError, getSession } from "./api/geotab";
 import { fetchEvents } from "./api/proxy";
 import { GroupFilterPicker } from "./components/GroupFilterPicker";
 import { EventsTable } from "./components/EventsTable";
+import { EVENT_TYPE_LABELS } from "./utils/eventTypes";
 
 interface AppProps {
   api: GeotabApi | null;
@@ -67,6 +68,12 @@ const classificationItems: ISelectionItem[] = [
   { id: "5", name: "Classification: Exoneration" },
 ];
 
+// All VisionTrack event types (0-50), alphabetical for findability.
+// Empty selection = no type filter (all types).
+const eventTypeItems: ISelectionItem[] = Object.entries(EVENT_TYPE_LABELS)
+  .map(([id, name]) => ({ id, name }))
+  .sort((a, b) => a.name.localeCompare(b.name));
+
 function defaultRange(): IDateRangeValue {
   const to = new Date();
   const from = new Date();
@@ -80,6 +87,7 @@ export default function App({ api }: AppProps) {
   const [selectedGroupIds, setSelectedGroupIds] = useState<string[]>(["GroupCompanyId"]);
   const [range, setRange] = useState<IDateRangeValue>(defaultRange);
   const [classification, setClassification] = useState<string>("all");
+  const [eventTypes, setEventTypes] = useState<string[]>([]);
 
   const [bootError, setBootError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -127,6 +135,7 @@ export default function App({ api }: AppProps) {
         groupIds: selectedGroupIds,
         fromDate: range.from.toISOString(),
         toDate: range.to.toISOString(),
+        eventTypes: eventTypes.length > 0 ? eventTypes.map(Number) : undefined,
         classifications,
       });
       setResult(resp);
@@ -136,7 +145,7 @@ export default function App({ api }: AppProps) {
     } finally {
       setLoading(false);
     }
-  }, [session, range, selectedGroupIds, classification]);
+  }, [session, range, selectedGroupIds, classification, eventTypes]);
 
   // ---- Standalone (no MyGeotab) -----------------------------------------
   if (!api) {
@@ -185,6 +194,18 @@ export default function App({ api }: AppProps) {
           onChange={setRange}
           withCalendar
           options={dateRangeOptions}
+        />
+
+        <Dropdown
+          width={300}
+          multiselect
+          placeholder="Event type: All"
+          dataItems={eventTypeItems}
+          value={eventTypes}
+          onChange={(selected: ISelectionItem[]) =>
+            setEventTypes(selected.map((s) => String(s.id)))
+          }
+          errorHandler={(e) => setError(friendlyError(e))}
         />
 
         <Dropdown
