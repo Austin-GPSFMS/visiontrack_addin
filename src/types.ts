@@ -95,6 +95,26 @@ export interface VtEvent {
   geotabGroups?: string;
 }
 
+/** One media entry for an event (proxy /api/event-media). `uri` is a
+ *  pre-signed VisionTrack blob URL the browser loads directly.
+ *  mediaType: 3=Video(mp4) 4=Preview(jpg) 5=Thumbnail(jpg). */
+export interface VtMedia {
+  id: string;
+  uri: string;
+  mimeType?: string;
+  channel?: number;
+  channelLabel?: string;
+  dateCaptured?: string;
+  hasAudio?: boolean;
+  mediaType: number;
+  firstFrameDateTime?: string;
+  lastFrameDateTime?: string;
+}
+
+export interface EventMediaResponse {
+  media: VtMedia[];
+}
+
 /** Response envelope from the proxy /api/events endpoint. */
 export interface EventsResponse {
   events: VtEvent[];

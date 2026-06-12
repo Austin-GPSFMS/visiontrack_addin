@@ -11,7 +11,7 @@
  * falls back to the value below.
  */
 
-import type { EventsResponse, GeotabSession } from "../types";
+import type { EventMediaResponse, EventsResponse, GeotabSession } from "../types";
 
 const PROXY_BASE_URL: string =
   (import.meta.env.VITE_PROXY_BASE_URL as string | undefined) ??
@@ -56,4 +56,14 @@ async function postJson<T>(path: string, body: unknown): Promise<T> {
 /** Fetch group-scoped VisionTrack safety events via the proxy. */
 export function fetchEvents(query: EventsQuery): Promise<EventsResponse> {
   return postJson<EventsResponse>("/api/events", query);
+}
+
+/** Fetch media (thumbnail/preview/video URLs) for one event. The proxy
+ *  403s if the camera is outside the caller's group scope. */
+export function fetchEventMedia(params: {
+  session: GeotabSession;
+  eventId: string;
+  hardwareId: string;
+}): Promise<EventMediaResponse> {
+  return postJson<EventMediaResponse>("/api/event-media", params);
 }

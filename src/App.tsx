@@ -40,6 +40,7 @@ import { fetchScopedGroups, friendlyError, getSession } from "./api/geotab";
 import { fetchEvents } from "./api/proxy";
 import { GroupFilterPicker } from "./components/GroupFilterPicker";
 import { EventsTable } from "./components/EventsTable";
+import { VideoGrid } from "./components/VideoGrid";
 import { EVENT_TYPE_LABELS } from "./utils/eventTypes";
 
 interface AppProps {
@@ -93,6 +94,7 @@ export default function App({ api }: AppProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<EventsResponse | null>(null);
+  const [view, setView] = useState<"videos" | "table">("videos");
 
   // ---- Bootstrap: session + scoped groups -------------------------------
   useEffect(() => {
@@ -231,7 +233,29 @@ export default function App({ api }: AppProps) {
         </Banner>
       )}
 
-      {result && <EventsTable events={result.events} />}
+      {result && (
+        <>
+          <div className="vt-viewtoggle">
+            <button
+              className={view === "videos" ? "vt-viewbtn vt-viewbtn--active" : "vt-viewbtn"}
+              onClick={() => setView("videos")}
+            >
+              Videos
+            </button>
+            <button
+              className={view === "table" ? "vt-viewbtn vt-viewbtn--active" : "vt-viewbtn"}
+              onClick={() => setView("table")}
+            >
+              Table
+            </button>
+          </div>
+          {view === "videos" && session ? (
+            <VideoGrid session={session} events={result.events} />
+          ) : (
+            <EventsTable events={result.events} />
+          )}
+        </>
+      )}
     </div>
   );
 }
