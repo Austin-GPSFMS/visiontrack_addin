@@ -1,0 +1,17 @@
+# ---- Public add-in repo (visiontrack_addin) ----
+# NOTE: dist/ is intentionally NOT ignored — GitHub Pages serves it.
+
+node_modules/
+.vite/
+*.log
+.DS_Store
+*.tsbuildinfo
+
+# Secrets / local env — never commit these
+.env
+.env.*
+!.env.example
+
+# The proxy lives in its OWN private repo. Exclude it from this public repo
+# so its pairings.json and any secrets can never end up on a public Pages repo.
+proxy/

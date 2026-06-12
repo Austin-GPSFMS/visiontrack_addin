@@ -1,0 +1,11 @@
+{
+  "//": "Unused. The single tsconfig.json covers both src and vite.config.ts. Kept only because the sandbox locked it during scaffolding; safe to delete.",
+  "compilerOptions": {
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "skipLibCheck": true,
+    "strict": true,
+    "noEmit": true
+  },
+  "include": ["vite.config.ts"]
+}
