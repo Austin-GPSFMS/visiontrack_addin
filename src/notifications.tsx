@@ -1,10 +1,11 @@
 /**
- * Entry point for the Notifications page (notifications.html).
+ * Entry point for the Camera Rules page (notifications.html — filename kept for
+ * deploy continuity; the page is "Camera Rules").
  */
 
 import { StrictMode } from "react";
 import { createRoot, Root } from "react-dom/client";
-import NotificationsApp from "./NotificationsApp";
+import CameraRulesApp from "./NotificationsApp";
 import type { GeotabApi, GeotabPageState } from "./types";
 import "./styles.css";
 
@@ -30,29 +31,27 @@ let currentApi: GeotabApi | null = null;
 function mount() {
   const container = document.getElementById("root");
   if (!container) {
-    console.error("[VT-notif] #root element not found");
+    console.error("[VT-rules] #root element not found");
     return;
   }
-  if (!root) {
-    root = createRoot(container);
-  }
+  if (!root) root = createRoot(container);
   root.render(
     <StrictMode>
-      <NotificationsApp api={currentApi} />
+      <CameraRulesApp api={currentApi} />
     </StrictMode>
   );
 }
 
 window.geotab = window.geotab || {};
 window.geotab.addin = window.geotab.addin || {};
-window.geotab.addin.visionTrackNotifications = function () {
+window.geotab.addin.visionTrackCameraRules = function () {
   return {
     initialize(api, _state, callback) {
       currentApi = api;
       try {
         mount();
       } catch (e) {
-        console.error("[VT-notif] initialize failed:", e);
+        console.error("[VT-rules] initialize failed:", e);
       }
       callback();
     },
@@ -66,17 +65,16 @@ window.geotab.addin.visionTrackNotifications = function () {
   };
 };
 
-// Standalone fallback for local dev outside MyGeotab.
 if (typeof window !== "undefined") {
   const standaloneTimer = window.setTimeout(() => {
     if (!root) {
-      console.warn("[VT-notif] No MyGeotab initialize() detected — standalone preview.");
+      console.warn("[VT-rules] No MyGeotab initialize() detected — standalone preview.");
       mount();
     }
   }, 500);
 
-  const origInit = window.geotab!.addin!.visionTrackNotifications;
-  window.geotab!.addin!.visionTrackNotifications = function () {
+  const origInit = window.geotab!.addin!.visionTrackCameraRules;
+  window.geotab!.addin!.visionTrackCameraRules = function () {
     window.clearTimeout(standaloneTimer);
     return origInit();
   };

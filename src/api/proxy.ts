@@ -13,10 +13,12 @@
 
 import type {
   AssociationsResponse,
+  CameraRule,
   EventMediaResponse,
   EventsResponse,
   GeotabSession,
-  NotificationsStatusResponse,
+  RuleInput,
+  RulesResponse,
 } from "../types";
 
 const PROXY_BASE_URL: string =
@@ -74,20 +76,23 @@ export function fetchAssociations(
   return postJson<AssociationsResponse>("/api/associations", { session, groupIds });
 }
 
-/** Which VT event types have diagnostics + rules in this database. */
-export function fetchNotificationsStatus(
-  session: GeotabSession
-): Promise<NotificationsStatusResponse> {
-  return postJson<NotificationsStatusResponse>("/api/notifications-status", { session });
+/** Camera Rules: list / save / delete (all scoped to the caller's database). */
+export function fetchRules(session: GeotabSession): Promise<RulesResponse> {
+  return postJson<RulesResponse>("/api/rules", { session });
 }
 
-/** Create a Geotab rule for a VT diagnostic, as the requesting user. */
-export function createRule(params: {
-  session: GeotabSession;
-  diagnosticId: string;
-  eventTypeLabel: string;
-}): Promise<{ ruleId: string; ruleName: string }> {
-  return postJson<{ ruleId: string; ruleName: string }>("/api/create-rule", params);
+export function saveRule(
+  session: GeotabSession,
+  rule: RuleInput
+): Promise<{ rule: CameraRule }> {
+  return postJson<{ rule: CameraRule }>("/api/rules/save", { session, rule });
+}
+
+export function deleteRule(
+  session: GeotabSession,
+  id: string
+): Promise<{ deleted: boolean }> {
+  return postJson<{ deleted: boolean }>("/api/rules/delete", { session, id });
 }
 
 export function fetchEventMedia(params: {

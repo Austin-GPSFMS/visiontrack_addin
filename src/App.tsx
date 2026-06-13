@@ -12,7 +12,7 @@
  * The browser never holds the Autonomise token and cannot widen its own scope.
  */
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Banner,
   Button,
@@ -41,7 +41,7 @@ import { fetchEvents } from "./api/proxy";
 import { GroupFilterPicker } from "./components/GroupFilterPicker";
 import { EventsTable } from "./components/EventsTable";
 import { VideoGrid } from "./components/VideoGrid";
-import { EVENT_TYPE_LABELS } from "./utils/eventTypes";
+import { SAFETY_EVENT_ENTRIES } from "./utils/eventTypes";
 
 interface AppProps {
   api: GeotabApi | null;
@@ -69,11 +69,12 @@ const classificationItems: ISelectionItem[] = [
   { id: "5", name: "Classification: Exoneration" },
 ];
 
-// All VisionTrack event types (0-50), alphabetical for findability.
+// Curated driver-safety event types (mirrors the VisionTrack portal).
 // Empty selection = no type filter (all types).
-const eventTypeItems: ISelectionItem[] = Object.entries(EVENT_TYPE_LABELS)
-  .map(([id, name]) => ({ id, name }))
-  .sort((a, b) => a.name.localeCompare(b.name));
+const eventTypeItems: ISelectionItem[] = SAFETY_EVENT_ENTRIES.map((e) => ({
+  id: String(e.id),
+  name: e.name,
+}));
 
 function defaultRange(): IDateRangeValue {
   const to = new Date();
@@ -95,6 +96,13 @@ export default function App({ api }: AppProps) {
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<EventsResponse | null>(null);
   const [view, setView] = useState<"videos" | "table">("videos");
+
+  // Deep link from notification emails: #addin-…,eventId:<id> → auto-open clip.
+  const deepLinkEventId = useMemo(() => {
+    if (typeof window === "undefined") return null;
+    const m = window.location.hash.match(/eventId:([^,&]+)/);
+    return m ? decodeURIComponent(m[1]) : null;
+  }, []);
 
   // ---- Bootstrap: session + scoped groups -------------------------------
   useEffect(() => {
@@ -148,6 +156,15 @@ export default function App({ api }: AppProps) {
       setLoading(false);
     }
   }, [session, range, selectedGroupIds, classification, eventTypes]);
+
+  // Arriving from a notification email → auto-load so the clip can open.
+  useEffect(() => {
+    if (session && deepLinkEventId && !result && !loading) {
+      setView("videos");
+      void handleRun();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session, deepLinkEventId]);
 
   // ---- Standalone (no MyGeotab) -----------------------------------------
   if (!api) {
@@ -250,7 +267,11 @@ export default function App({ api }: AppProps) {
             </button>
           </div>
           {view === "videos" && session ? (
-            <VideoGrid session={session} events={result.events} />
+            <VideoGrid
+              session={session}
+              events={result.events}
+              autoOpenEventId={deepLinkEventId}
+            />
           ) : (
             <EventsTable events={result.events} />
           )}

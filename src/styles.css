@@ -151,6 +151,91 @@ body {
   margin: 26px 0 4px;
 }
 
+/* ---- Camera Rules editor ---- */
+
+.vt-rule-editor {
+  border: 1px solid #dde4ec;
+  border-radius: 8px;
+  padding: 18px 20px;
+  background: #fff;
+  max-width: 720px;
+}
+
+.vt-field {
+  display: block;
+  margin-bottom: 16px;
+}
+
+.vt-field > span {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: #3c4a5d;
+  margin-bottom: 6px;
+}
+
+.vt-input {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid #c5d0de;
+  border-radius: 6px;
+  font-size: 14px;
+}
+
+.vt-input--narrow {
+  width: 120px;
+}
+
+.vt-hint {
+  display: block;
+  color: #8a99ad;
+  font-size: 12px;
+  margin-top: 4px;
+}
+
+.vt-typegrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 4px 16px;
+  max-height: 220px;
+  overflow-y: auto;
+  border: 1px solid #eef2f7;
+  border-radius: 6px;
+  padding: 10px;
+}
+
+.vt-checkrow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #1a1a1a;
+  cursor: pointer;
+}
+
+.vt-editor-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.vt-rowactions {
+  white-space: nowrap;
+}
+
+.vt-link {
+  background: none;
+  border: none;
+  color: #1b66d1;
+  cursor: pointer;
+  font-size: 13px;
+  padding: 2px 6px;
+}
+
+.vt-link--danger {
+  color: #c43232;
+}
+
 /* ---- View toggle ---- */
 
 .vt-viewtoggle {

@@ -150,18 +150,35 @@ export interface AssociationsResponse {
   };
 }
 
-/** Notifications page (proxy /api/notifications-status). */
-export interface NotificationItem {
-  eventType: number;
-  label: string;
-  diagnosticId: string | null;
-  diagnosticName: string;
-  rules: Array<{ id: string; name: string }>;
+/** Camera Rules (proxy /api/rules). */
+export interface CameraRule {
+  id: string;
+  geotabDatabase: string;
+  name: string;
+  eventTypes: number[];
+  groupIds: string[];
+  recipients: string[];
+  enabled: boolean;
+  cooldownMinutes: number;
+  createdBy?: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
-export interface NotificationsStatusResponse {
+export interface RuleInput {
+  id?: string;
+  name: string;
+  eventTypes: number[];
+  groupIds: string[];
+  recipients: string[];
+  enabled: boolean;
+  cooldownMinutes: number;
+}
+
+export interface RulesResponse {
+  rules: CameraRule[];
+  emailConfigured: boolean;
   ingestionConfigured: boolean;
-  items: NotificationItem[];
 }
 
 /** Response envelope from the proxy /api/events endpoint. */

@@ -9,7 +9,7 @@ export const EVENT_TYPE_LABELS: Record<number, string> = {
   4: "Accelerate",
   5: "Shock",
   6: "Turn",
-  7: "Button",
+  7: "Panic",
   8: "System",
   9: "Diagnostics",
   10: "Ignition On",
@@ -51,6 +51,24 @@ export const EVENT_TYPE_LABELS: Record<number, string> = {
   46: "Right Side Intrusion",
   47: "Frequent Lane Changes",
   48: "Drowsy Eyes Detected",
-  49: "Low Bridge Detected",
+  49: "Low Bridge Warning",
   50: "Physiological Fatigue",
 };
+
+/**
+ * Driver-safety event types worth showing in filters/rules — mirrors the
+ * VisionTrack portal's event list. Excludes housekeeping/system types
+ * (Undefined, Unknown, System, Diagnostics, Ignition On/Off, Video Request,
+ * Fixed Speed, GPS Fault, Video Loss, Storage Abnormal, Camera Covered,
+ * Black Event).
+ */
+export const SAFETY_EVENT_TYPES: number[] = [
+  2, 3, 4, 5, 6, 7, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 33,
+  34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50,
+];
+
+/** {id,name} entries for the safety types, alphabetised by label. */
+export const SAFETY_EVENT_ENTRIES = SAFETY_EVENT_TYPES.map((id) => ({
+  id,
+  name: EVENT_TYPE_LABELS[id],
+})).sort((a, b) => a.name.localeCompare(b.name));

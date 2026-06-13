@@ -248,15 +248,46 @@ function VideoModal({
 export interface VideoGridProps {
   session: GeotabSession;
   events: VtEvent[];
+  /** When set (e.g. from a notification email deep link), auto-open this
+   *  event's clip once its media loads. */
+  autoOpenEventId?: string | null;
 }
 
-export function VideoGrid({ session, events }: VideoGridProps) {
+export function VideoGrid({ session, events, autoOpenEventId }: VideoGridProps) {
   const [shown, setShown] = useState(PAGE_SIZE);
   const [playing, setPlaying] = useState<{ ev: VtEvent; media: VtMedia[] } | null>(
     null
   );
+  const [autoOpenError, setAutoOpenError] = useState<string | null>(null);
+  const autoOpenedRef = useRef(false);
 
-  const visible = events.slice(0, shown);
+  // Auto-open the deep-linked event's clip (fetch its media directly).
+  useEffect(() => {
+    if (!autoOpenEventId || autoOpenedRef.current) return;
+    const ev = events.find((e) => e.id === autoOpenEventId);
+    if (!ev || !ev.hardwareId) {
+      if (events.length > 0) setAutoOpenError("Linked event not in the current view.");
+      return;
+    }
+    autoOpenedRef.current = true;
+    fetchEventMedia({
+      session,
+      eventId: ev.id,
+      hardwareId: ev.hardwareId,
+      vehicleId: ev.vehicleId,
+    })
+      .then((resp) => setPlaying({ ev, media: resp.media }))
+      .catch((e) => setAutoOpenError(String(e?.message ?? e)));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoOpenEventId, events]);
+
+  // Ensure the deep-linked card is rendered even if far down the list.
+  const targetIndex = autoOpenEventId
+    ? events.findIndex((e) => e.id === autoOpenEventId)
+    : -1;
+  const effectiveShown =
+    targetIndex >= shown ? Math.max(shown, targetIndex + 1) : shown;
+  const visible = events.slice(0, effectiveShown);
 
   if (events.length === 0) {
     return (
@@ -268,6 +299,11 @@ export function VideoGrid({ session, events }: VideoGridProps) {
 
   return (
     <>
+      {autoOpenError && (
+        <div className="vt-scope-note" style={{ color: "#c43232" }}>
+          {autoOpenError}
+        </div>
+      )}
       <div className="vt-grid">
         {visible.map((ev) => (
           <VideoCard
@@ -278,10 +314,10 @@ export function VideoGrid({ session, events }: VideoGridProps) {
           />
         ))}
       </div>
-      {shown < events.length && (
+      {effectiveShown < events.length && (
         <div className="vt-grid-more">
           <button onClick={() => setShown((n) => n + PAGE_SIZE)}>
-            Show more ({events.length - shown} remaining)
+            Show more ({events.length - effectiveShown} remaining)
           </button>
         </div>
       )}
