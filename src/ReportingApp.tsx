@@ -138,8 +138,7 @@ export default function ReportingApp({ api }: AppProps) {
 
       <div className="vt-toolbar">
         <input
-          className="vt-input"
-          style={{ maxWidth: 280 }}
+          className="vt-input vt-report-search"
           placeholder="Search reports…"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
