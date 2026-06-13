@@ -23,6 +23,13 @@
       "menuName": {
         "en": "Device Association"
       }
+    },
+    {
+      "url": "https://austin-gpsfms.github.io/visiontrack_addin/dist/notifications.html",
+      "path": "GpsfmsVisionTrackMenu/",
+      "menuName": {
+        "en": "Notifications"
+      }
     }
   ],
   "enableViewSecurityId": true,

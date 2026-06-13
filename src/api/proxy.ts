@@ -16,6 +16,7 @@ import type {
   EventMediaResponse,
   EventsResponse,
   GeotabSession,
+  NotificationsStatusResponse,
 } from "../types";
 
 const PROXY_BASE_URL: string =
@@ -71,6 +72,22 @@ export function fetchAssociations(
   groupIds?: string[]
 ): Promise<AssociationsResponse> {
   return postJson<AssociationsResponse>("/api/associations", { session, groupIds });
+}
+
+/** Which VT event types have diagnostics + rules in this database. */
+export function fetchNotificationsStatus(
+  session: GeotabSession
+): Promise<NotificationsStatusResponse> {
+  return postJson<NotificationsStatusResponse>("/api/notifications-status", { session });
+}
+
+/** Create a Geotab rule for a VT diagnostic, as the requesting user. */
+export function createRule(params: {
+  session: GeotabSession;
+  diagnosticId: string;
+  eventTypeLabel: string;
+}): Promise<{ ruleId: string; ruleName: string }> {
+  return postJson<{ ruleId: string; ruleName: string }>("/api/create-rule", params);
 }
 
 export function fetchEventMedia(params: {

@@ -25,6 +25,7 @@ export default defineConfig({
       input: {
         index: "index.html",
         association: "association.html",
+        notifications: "notifications.html",
       },
       output: {
         entryFileNames: "assets/[name]-[hash].js",

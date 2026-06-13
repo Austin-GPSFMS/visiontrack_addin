@@ -150,6 +150,20 @@ export interface AssociationsResponse {
   };
 }
 
+/** Notifications page (proxy /api/notifications-status). */
+export interface NotificationItem {
+  eventType: number;
+  label: string;
+  diagnosticId: string | null;
+  diagnosticName: string;
+  rules: Array<{ id: string; name: string }>;
+}
+
+export interface NotificationsStatusResponse {
+  ingestionConfigured: boolean;
+  items: NotificationItem[];
+}
+
 /** Response envelope from the proxy /api/events endpoint. */
 export interface EventsResponse {
   events: VtEvent[];
