@@ -136,22 +136,22 @@ export default function ReportingApp({ api }: AppProps) {
         <h1>Reporting</h1>
       </div>
 
-      <div className="vt-toolbar">
+      <div className="vt-rt-toolbar">
         <input
-          className="vt-input vt-report-search"
+          className="vt-rt-search"
           placeholder="Search reports…"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
         />
-        <div className="vt-viewtoggle">
+        <div className="vt-rt-toggle">
           <button
-            className={!favOnly ? "vt-viewbtn vt-viewbtn--active" : "vt-viewbtn"}
+            className={!favOnly ? "vt-rt-btn vt-rt-btn--active" : "vt-rt-btn"}
             onClick={() => setFavOnly(false)}
           >
             All reports
           </button>
           <button
-            className={favOnly ? "vt-viewbtn vt-viewbtn--active" : "vt-viewbtn"}
+            className={favOnly ? "vt-rt-btn vt-rt-btn--active" : "vt-rt-btn"}
             onClick={() => setFavOnly(true)}
           >
             ★ Favorites{favorites.size > 0 ? ` (${favorites.size})` : ""}
