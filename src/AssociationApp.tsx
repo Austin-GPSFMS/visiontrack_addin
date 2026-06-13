@@ -49,6 +49,8 @@ export default function AssociationApp({ api }: AppProps) {
   const [data, setData] = useState<AssociationsResponse | null>(null);
   const [filter, setFilter] = useState<"all" | AssociationRow["status"]>("all");
   const [exporting, setExporting] = useState(false);
+  // Bumped to force-remount the group picker (e.g. on "Show all vehicles").
+  const [pickerKey, setPickerKey] = useState(0);
 
   useEffect(() => {
     if (!api) return;
@@ -155,11 +157,23 @@ export default function AssociationApp({ api }: AppProps) {
 
       <div className="vt-toolbar">
         <GroupFilterPicker
+          key={pickerKey}
           groupsById={groupsById}
           initialGroupIds={selectedGroupIds}
           onChange={setSelectedGroupIds}
           onError={(e) => setError(friendlyError(e))}
         />
+        {selectedGroupIds.filter((id) => id !== "GroupCompanyId").length > 0 && (
+          <button
+            className="vt-link"
+            onClick={() => {
+              setSelectedGroupIds([]);
+              setPickerKey((k) => k + 1);
+            }}
+          >
+            Show all vehicles
+          </button>
+        )}
       </div>
 
       {error && (
