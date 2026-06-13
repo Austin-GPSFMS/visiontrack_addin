@@ -1,27 +1,30 @@
 /**
- * Camera Rules — toggle VisionTrack camera events on/off and set who gets
- * emailed. Each event type is already named, so there's no "create a rule"
- * step: every VT safety event is a row with an On/Off toggle; turning one on
- * configures recipients (+ optional group scope + cooldown).
- *
- * Under the hood each enabled event type is one rule in the proxy
- * (rule.eventTypes = [thatType], rule.name = the event label). Delivery is the
- * proxy's own SMTP — Geotab won't provision VisionTrack diagnostics, so these
- * never become native Geotab rules. Alerts link to the Dashboard clip.
+ * Camera Rules — toggle VisionTrack camera events on/off (admin only,
+ * company-wide) and choose who gets emailed. Targeting is entirely by
+ * recipient: individual Geotab users (each auto-limited to their own group
+ * access), external/shared emails, and reusable Distribution Lists managed at
+ * the top of the page. Delivery is the proxy's own SMTP; alerts link to the
+ * Dashboard clip. Each enabled event type is one rule in the proxy.
  */
 
 import { useCallback, useEffect, useState } from "react";
 import { Banner } from "@geotab/zenith";
 import type {
   CameraRule,
+  DistributionList,
   GeotabApi,
-  GeotabGroup,
   GeotabSession,
   PickerUser,
 } from "./types";
-import { fetchScopedGroups, friendlyError, getSession } from "./api/geotab";
-import { deleteRule, fetchRuleUsers, fetchRules, saveRule } from "./api/proxy";
-import { GroupFilterPicker } from "./components/GroupFilterPicker";
+import { friendlyError, getSession } from "./api/geotab";
+import {
+  deleteDistList,
+  deleteRule,
+  fetchRuleUsers,
+  fetchRules,
+  saveDistList,
+  saveRule,
+} from "./api/proxy";
 import { EVENT_TYPE_LABELS } from "./utils/eventTypes";
 
 interface AppProps {
@@ -31,59 +34,140 @@ interface AppProps {
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const DEFAULT_COOLDOWN = 30;
 
-/** VisionTrack event types grouped for scannability (ids from the VT enum). */
 const CATEGORIES: Array<{ label: string; types: number[] }> = [
-  {
-    label: "Driver State Monitoring",
-    types: [27, 29, 20, 18, 48, 50, 19, 21, 44],
-  },
+  { label: "Driver State Monitoring", types: [27, 29, 20, 18, 48, 50, 19, 21, 44] },
   {
     label: "Collision Avoidance (ADAS)",
     types: [23, 28, 22, 43, 45, 30, 41, 37, 38, 39, 40, 31, 33, 34, 35, 36, 46, 49],
   },
-  {
-    label: "Driving Behaviour",
-    types: [2, 3, 4, 6, 5, 47, 26],
-  },
-  {
-    label: "Other",
-    types: [7, 42, 24, 25],
-  },
+  { label: "Driving Behaviour", types: [2, 3, 4, 6, 5, 47, 26] },
+  { label: "Other", types: [7, 42, 24, 25] },
 ];
+
+/** Reusable email picker: searchable Geotab-user dropdown + chips, with
+ *  free-typed email fallback. `value` is a list of emails. */
+function RecipientPicker({
+  users,
+  value,
+  onChange,
+  placeholder = "Search users by name or email…",
+}: {
+  users: PickerUser[];
+  value: string[];
+  onChange: (next: string[]) => void;
+  placeholder?: string;
+}) {
+  const [input, setInput] = useState("");
+  const q = input.trim().toLowerCase();
+  const matches = q
+    ? users
+        .filter(
+          (u) =>
+            !value.includes(u.email) &&
+            (u.name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q))
+        )
+        .slice(0, 8)
+    : [];
+
+  const add = (email: string) => {
+    const e = email.trim();
+    if (!e || !EMAIL_RE.test(e) || value.includes(e)) {
+      setInput("");
+      return;
+    }
+    onChange([...value, e]);
+    setInput("");
+  };
+
+  return (
+    <>
+      <div className="vt-chips">
+        {value.map((rcp) => {
+          const u = users.find((x) => x.email === rcp);
+          return (
+            <span key={rcp} className="vt-chip" title={rcp}>
+              {u ? u.name : rcp}
+              <button
+                type="button"
+                className="vt-chip-x"
+                onClick={() => onChange(value.filter((x) => x !== rcp))}
+                aria-label={`Remove ${rcp}`}
+              >
+                ✕
+              </button>
+            </span>
+          );
+        })}
+      </div>
+      <div className="vt-typeahead">
+        <input
+          className="vt-input"
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              add(matches[0] ? matches[0].email : input);
+            }
+          }}
+          onBlur={() => input.trim() && add(input)}
+          placeholder={placeholder}
+        />
+        {matches.length > 0 && (
+          <div className="vt-typeahead-menu">
+            {matches.map((u) => (
+              <button
+                key={u.email}
+                type="button"
+                className="vt-typeahead-item"
+                onClick={() => add(u.email)}
+              >
+                <span className="vt-ta-name">{u.name}</span>
+                <span className="vt-ta-email">{u.email}</span>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+    </>
+  );
+}
 
 interface RowDraft {
   recipients: string[];
-  groupIds: string[];
+  listIds: string[];
   cooldownMinutes: number;
 }
 
 export default function CameraRulesApp({ api }: AppProps) {
   const [session, setSession] = useState<GeotabSession | null>(null);
-  const [groupsById, setGroupsById] = useState<Map<string, GeotabGroup>>(new Map());
   const [bootError, setBootError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
   const [emailOk, setEmailOk] = useState(true);
+  const [canManage, setCanManage] = useState(false);
   const [busy, setBusy] = useState(false);
   const [users, setUsers] = useState<PickerUser[]>([]);
 
-  // rule per event type (eventTypes is always a single id in this model)
   const [ruleByType, setRuleByType] = useState<Map<number, CameraRule>>(new Map());
+  const [distLists, setDistLists] = useState<DistributionList[]>([]);
 
-  // which event-type row is expanded for editing, and its working draft
   const [editing, setEditing] = useState<number | null>(null);
   const [draft, setDraft] = useState<RowDraft | null>(null);
-  const [recipientInput, setRecipientInput] = useState("");
+
+  // Distribution-list manager state.
+  const [listEditing, setListEditing] = useState<string | "new" | null>(null);
+  const [listDraft, setListDraft] = useState<{ name: string; members: string[] }>(
+    { name: "", members: [] }
+  );
 
   useEffect(() => {
     if (!api) return;
     let cancelled = false;
-    Promise.all([getSession(api), fetchScopedGroups(api)])
-      .then(([s, g]) => {
+    getSession(api)
+      .then((s) => {
         if (cancelled) return;
         setSession(s);
-        setGroupsById(g);
-        // Load the user list for the recipient picker (best-effort).
         fetchRuleUsers(s)
           .then((r) => !cancelled && setUsers(r.users))
           .catch(() => undefined);
@@ -105,7 +189,9 @@ export default function CameraRulesApp({ api }: AppProps) {
         if (t != null) m.set(t, r);
       }
       setRuleByType(m);
+      setDistLists(resp.distLists);
       setEmailOk(resp.emailConfigured);
+      setCanManage(resp.canManage);
     } catch (e) {
       setError(friendlyError(e));
     }
@@ -116,15 +202,12 @@ export default function CameraRulesApp({ api }: AppProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session]);
 
-  const groupSummary = useCallback(
-    (ids: string[]) =>
-      ids.length === 0
-        ? "All vehicles in scope"
-        : ids.map((id) => groupsById.get(id)?.name ?? id).join(", "),
-    [groupsById]
+  const listName = useCallback(
+    (id: string) => distLists.find((l) => l.id === id)?.name ?? "list",
+    [distLists]
   );
 
-  // ---- Persist helpers (one rule per event type) ----
+  // ---- Rules ----
 
   const persistRule = useCallback(
     async (eventType: number, fields: RowDraft, enabled: boolean) => {
@@ -134,8 +217,9 @@ export default function CameraRulesApp({ api }: AppProps) {
         id: existing?.id,
         name: EVENT_TYPE_LABELS[eventType] ?? `Event ${eventType}`,
         eventTypes: [eventType],
-        groupIds: fields.groupIds,
+        groupIds: [],
         recipients: fields.recipients,
+        listIds: fields.listIds,
         enabled,
         cooldownMinutes: fields.cooldownMinutes,
       });
@@ -148,10 +232,9 @@ export default function CameraRulesApp({ api }: AppProps) {
     const r = ruleByType.get(eventType);
     setDraft({
       recipients: r ? [...r.recipients] : [],
-      groupIds: r ? [...r.groupIds] : [],
+      listIds: r ? [...r.listIds] : [],
       cooldownMinutes: r ? r.cooldownMinutes : DEFAULT_COOLDOWN,
     });
-    setRecipientInput("");
     setEditing(eventType);
     setInfo(null);
     setError(null);
@@ -161,7 +244,6 @@ export default function CameraRulesApp({ api }: AppProps) {
     async (eventType: number) => {
       const r = ruleByType.get(eventType);
       if (!r) {
-        // No config yet — open the editor so they can add recipients.
         openEditor(eventType);
         return;
       }
@@ -169,11 +251,7 @@ export default function CameraRulesApp({ api }: AppProps) {
       try {
         await persistRule(
           eventType,
-          {
-            recipients: r.recipients,
-            groupIds: r.groupIds,
-            cooldownMinutes: r.cooldownMinutes,
-          },
+          { recipients: r.recipients, listIds: r.listIds, cooldownMinutes: r.cooldownMinutes },
           !r.enabled
         );
       } catch (e) {
@@ -185,47 +263,16 @@ export default function CameraRulesApp({ api }: AppProps) {
     [ruleByType, persistRule]
   );
 
-  const addRecipient = (email: string) => {
-    if (!draft) return;
-    const e = email.trim();
-    if (!e || !EMAIL_RE.test(e)) return;
-    if (draft.recipients.includes(e)) {
-      setRecipientInput("");
-      return;
-    }
-    setDraft({ ...draft, recipients: [...draft.recipients, e] });
-    setRecipientInput("");
-  };
-
-  // Users matching the search box that aren't already selected.
-  const userMatches = (() => {
-    if (!draft) return [];
-    const q = recipientInput.trim().toLowerCase();
-    if (!q) return [];
-    return users
-      .filter(
-        (u) =>
-          !draft.recipients.includes(u.email) &&
-          (u.name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q))
-      )
-      .slice(0, 8);
-  })();
-
   const saveEditor = useCallback(async () => {
     if (editing == null || !draft) return;
-    let recipients = draft.recipients;
-    const pending = recipientInput.trim();
-    if (pending && EMAIL_RE.test(pending) && !recipients.includes(pending)) {
-      recipients = [...recipients, pending];
-    }
-    if (recipients.length === 0) {
-      setError("Add at least one recipient email to enable this alert.");
+    if (draft.recipients.length === 0 && draft.listIds.length === 0) {
+      setError("Add at least one recipient or distribution list to enable this alert.");
       return;
     }
     setBusy(true);
     setError(null);
     try {
-      await persistRule(editing, { ...draft, recipients }, true);
+      await persistRule(editing, draft, true);
       setInfo(`${EVENT_TYPE_LABELS[editing]} alerts saved.`);
       setEditing(null);
       setDraft(null);
@@ -234,7 +281,7 @@ export default function CameraRulesApp({ api }: AppProps) {
     } finally {
       setBusy(false);
     }
-  }, [editing, draft, recipientInput, persistRule]);
+  }, [editing, draft, persistRule]);
 
   const handleRemove = useCallback(
     async (eventType: number) => {
@@ -258,6 +305,58 @@ export default function CameraRulesApp({ api }: AppProps) {
     [session, ruleByType, load, editing]
   );
 
+  // ---- Distribution lists ----
+
+  const openListEditor = (id: string | "new") => {
+    if (id === "new") setListDraft({ name: "", members: [] });
+    else {
+      const l = distLists.find((x) => x.id === id);
+      setListDraft({ name: l?.name ?? "", members: l ? [...l.members] : [] });
+    }
+    setListEditing(id);
+    setInfo(null);
+    setError(null);
+  };
+
+  const saveListEditor = useCallback(async () => {
+    if (!session || listEditing == null) return;
+    if (!listDraft.name.trim()) {
+      setError("Distribution list needs a name.");
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    try {
+      await saveDistList(session, {
+        id: listEditing === "new" ? undefined : listEditing,
+        name: listDraft.name.trim(),
+        members: listDraft.members,
+      });
+      setListEditing(null);
+      await load();
+    } catch (e) {
+      setError(friendlyError(e));
+    } finally {
+      setBusy(false);
+    }
+  }, [session, listEditing, listDraft, load]);
+
+  const handleListDelete = useCallback(
+    async (id: string) => {
+      if (!session) return;
+      setBusy(true);
+      try {
+        await deleteDistList(session, id);
+        await load();
+      } catch (e) {
+        setError(friendlyError(e));
+      } finally {
+        setBusy(false);
+      }
+    },
+    [session, load]
+  );
+
   if (!api) {
     return (
       <div className="vt-empty">
@@ -268,6 +367,12 @@ export default function CameraRulesApp({ api }: AppProps) {
   }
   if (bootError) return <Banner type="error">{bootError}</Banner>;
 
+  const recipientSummary = (r: CameraRule): string => {
+    const names = r.recipients.map((e) => users.find((u) => u.email === e)?.name ?? e);
+    const lists = r.listIds.map((id) => `${listName(id)} (list)`);
+    return [...lists, ...names].join(", ");
+  };
+
   const renderRow = (eventType: number) => {
     const r = ruleByType.get(eventType);
     const on = Boolean(r?.enabled);
@@ -277,22 +382,18 @@ export default function CameraRulesApp({ api }: AppProps) {
     return (
       <div key={eventType} className="vt-rulerow">
         <div className="vt-rulerow-main">
-          <div
-            className={`vt-seg${on ? " vt-seg--on" : ""}`}
-            role="group"
-            aria-label={`${label} alerts`}
-          >
+          <div className="vt-seg" role="group" aria-label={`${label} alerts`}>
             <button
               className={`vt-seg-btn${on ? " vt-seg-btn--active" : ""}`}
               onClick={() => !on && void handleToggle(eventType)}
-              disabled={busy}
+              disabled={busy || !canManage}
             >
               On
             </button>
             <button
               className={`vt-seg-btn${!on ? " vt-seg-btn--active-off" : ""}`}
               onClick={() => on && void handleToggle(eventType)}
-              disabled={busy}
+              disabled={busy || !canManage}
             >
               Off
             </button>
@@ -301,107 +402,70 @@ export default function CameraRulesApp({ api }: AppProps) {
           <div className="vt-rulerow-text">
             <div className="vt-rulerow-name">{label}</div>
             <div className="vt-rulerow-sub">
-              {r && r.recipients.length > 0
-                ? `${r.recipients
-                    .map((e) => users.find((u) => u.email === e)?.name ?? e)
-                    .join(", ")} · ${groupSummary(r.groupIds)} · ${r.cooldownMinutes}m cooldown`
-                : "Not configured — turn on to add recipients."}
+              {r && (r.recipients.length > 0 || r.listIds.length > 0)
+                ? `${recipientSummary(r)} · ${r.cooldownMinutes}m cooldown`
+                : canManage
+                  ? "Not configured — turn on to add recipients."
+                  : "Not configured."}
             </div>
           </div>
 
-          <div className="vt-rulerow-actions">
-            <button className="vt-link" onClick={() => openEditor(eventType)}>
-              {r ? "Edit" : "Configure"}
-            </button>
-            {r && (
-              <button
-                className="vt-link vt-link--danger"
-                onClick={() => void handleRemove(eventType)}
-              >
-                Remove
+          {canManage && (
+            <div className="vt-rulerow-actions">
+              <button className="vt-link" onClick={() => openEditor(eventType)}>
+                {r ? "Edit" : "Configure"}
               </button>
-            )}
-          </div>
+              {r && (
+                <button
+                  className="vt-link vt-link--danger"
+                  onClick={() => void handleRemove(eventType)}
+                >
+                  Remove
+                </button>
+              )}
+            </div>
+          )}
         </div>
 
         {isEditing && draft && (
           <div className="vt-rulerow-editor">
             <div className="vt-field">
               <span>Recipients</span>
-              <div className="vt-chips">
-                {draft.recipients.map((rcp) => {
-                  const u = users.find((x) => x.email === rcp);
-                  return (
-                    <span key={rcp} className="vt-chip" title={rcp}>
-                      {u ? u.name : rcp}
-                      <button
-                        type="button"
-                        className="vt-chip-x"
-                        onClick={() =>
-                          setDraft({
-                            ...draft,
-                            recipients: draft.recipients.filter((x) => x !== rcp),
-                          })
-                        }
-                        aria-label={`Remove ${rcp}`}
-                      >
-                        ✕
-                      </button>
-                    </span>
-                  );
-                })}
-              </div>
-              <div className="vt-typeahead">
-                <input
-                  className="vt-input"
-                  value={recipientInput}
-                  onChange={(e) => setRecipientInput(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      if (userMatches[0]) addRecipient(userMatches[0].email);
-                      else addRecipient(recipientInput);
-                    }
-                  }}
-                  placeholder="Search users by name or email…"
-                />
-                {userMatches.length > 0 && (
-                  <div className="vt-typeahead-menu">
-                    {userMatches.map((u) => (
-                      <button
-                        key={u.email}
-                        type="button"
-                        className="vt-typeahead-item"
-                        onClick={() => addRecipient(u.email)}
-                      >
-                        <span className="vt-ta-name">{u.name}</span>
-                        <span className="vt-ta-email">{u.email}</span>
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
+              <RecipientPicker
+                users={users}
+                value={draft.recipients}
+                onChange={(recipients) => setDraft({ ...draft, recipients })}
+              />
               <small className="vt-hint">
-                Pick Geotab users (each is auto-limited to vehicles in their own
-                group access), or type any email and press Enter for a shared
-                inbox.
+                Geotab users are auto-limited to vehicles in their own group
+                access; any other email gets all of this event's alerts.
               </small>
             </div>
 
-            <div className="vt-field">
-              <span>Vehicle groups</span>
-              <GroupFilterPicker
-                groupsById={groupsById}
-                initialGroupIds={draft.groupIds.length ? draft.groupIds : ["GroupCompanyId"]}
-                onChange={(ids) =>
-                  setDraft({ ...draft, groupIds: ids.filter((id) => id !== "GroupCompanyId") })
-                }
-                onError={(e) => setError(friendlyError(e))}
-              />
-              <small className="vt-hint">
-                Leave as Company to alert on all vehicles in scope.
-              </small>
-            </div>
+            {distLists.length > 0 && (
+              <div className="vt-field">
+                <span>Distribution lists</span>
+                <div className="vt-listchecks">
+                  {distLists.map((l) => (
+                    <label key={l.id} className="vt-checkrow">
+                      <input
+                        type="checkbox"
+                        checked={draft.listIds.includes(l.id)}
+                        onChange={() =>
+                          setDraft({
+                            ...draft,
+                            listIds: draft.listIds.includes(l.id)
+                              ? draft.listIds.filter((x) => x !== l.id)
+                              : [...draft.listIds, l.id],
+                          })
+                        }
+                      />
+                      {l.name} <span className="vt-muted">({l.members.length})</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
 
             <label className="vt-field">
               <span>Cooldown per vehicle (minutes)</span>
@@ -445,11 +509,17 @@ export default function CameraRulesApp({ api }: AppProps) {
 
       <p className="vt-scope-note">
         Turn on the VisionTrack camera events you want email alerts for, and
-        choose who gets notified. Each alert fires at most once per vehicle per
-        cooldown window and links to the clip in the Dashboard.
+        choose who gets notified. Alerts fire at most once per vehicle per
+        cooldown window and link to the clip in the Dashboard.
       </p>
 
-      {!emailOk && (
+      {!canManage && (
+        <Banner type="info">
+          You can view which camera-event alerts are active. Only a Geotab
+          Administrator can turn them on/off or change recipients.
+        </Banner>
+      )}
+      {canManage && !emailOk && (
         <Banner type="warning">
           Email delivery isn't configured on the GPSFMS proxy yet — toggles will
           save but won't send until SMTP is set up.
@@ -466,6 +536,96 @@ export default function CameraRulesApp({ api }: AppProps) {
         </Banner>
       )}
 
+      {/* ---- Distribution lists ---- */}
+      {canManage && (
+        <div className="vt-rulecat">
+          <div className="vt-rulecat-head vt-rulecat-head--action">
+            <span>Distribution Lists</span>
+            {listEditing == null && (
+              <button className="vt-link" onClick={() => openListEditor("new")}>
+                + New list
+              </button>
+            )}
+          </div>
+
+          {distLists.length === 0 && listEditing == null && (
+            <div className="vt-rulerow">
+              <div className="vt-rulerow-main vt-muted">
+                No distribution lists yet. Create one to reuse a group of
+                recipients across rules.
+              </div>
+            </div>
+          )}
+
+          {distLists.map((l) =>
+            listEditing === l.id ? null : (
+              <div key={l.id} className="vt-rulerow">
+                <div className="vt-rulerow-main">
+                  <div className="vt-rulerow-text">
+                    <div className="vt-rulerow-name">{l.name}</div>
+                    <div className="vt-rulerow-sub">
+                      {l.members.length} member{l.members.length === 1 ? "" : "s"}
+                    </div>
+                  </div>
+                  <div className="vt-rulerow-actions">
+                    <button className="vt-link" onClick={() => openListEditor(l.id)}>
+                      Edit
+                    </button>
+                    <button
+                      className="vt-link vt-link--danger"
+                      onClick={() => void handleListDelete(l.id)}
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )
+          )}
+
+          {listEditing != null && (
+            <div className="vt-rulerow">
+              <div className="vt-rulerow-editor" style={{ width: "100%" }}>
+                <label className="vt-field">
+                  <span>List name</span>
+                  <input
+                    className="vt-input"
+                    value={listDraft.name}
+                    onChange={(e) => setListDraft({ ...listDraft, name: e.target.value })}
+                    placeholder="e.g. Safety team"
+                  />
+                </label>
+                <div className="vt-field">
+                  <span>Members</span>
+                  <RecipientPicker
+                    users={users}
+                    value={listDraft.members}
+                    onChange={(members) => setListDraft({ ...listDraft, members })}
+                  />
+                </div>
+                <div className="vt-editor-actions">
+                  <button
+                    className="vt-btn vt-btn--primary"
+                    onClick={saveListEditor}
+                    disabled={busy}
+                  >
+                    {busy ? "Saving…" : "Save list"}
+                  </button>
+                  <button
+                    className="vt-btn"
+                    onClick={() => setListEditing(null)}
+                    disabled={busy}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ---- Event-type rules ---- */}
       {CATEGORIES.map((cat) => (
         <div key={cat.label} className="vt-rulecat">
           <div className="vt-rulecat-head">{cat.label}</div>

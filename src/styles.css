@@ -172,6 +172,28 @@ body {
   border-bottom: 1px solid #dde4ec;
 }
 
+.vt-rulecat-head--action {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.vt-rulecat-head--action .vt-link {
+  text-transform: none;
+  letter-spacing: 0;
+  font-weight: 600;
+}
+
+.vt-muted {
+  color: #8a99ad;
+}
+
+.vt-listchecks {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 4px 16px;
+}
+
 .vt-rulerow {
   border-bottom: 1px solid #eef2f7;
 }

@@ -14,6 +14,8 @@
 import type {
   AssociationsResponse,
   CameraRule,
+  DistListInput,
+  DistributionList,
   EventMediaResponse,
   EventsResponse,
   GeotabSession,
@@ -101,6 +103,21 @@ export function fetchRuleUsers(
   session: GeotabSession
 ): Promise<{ users: PickerUser[] }> {
   return postJson<{ users: PickerUser[] }>("/api/rules/users", { session });
+}
+
+/** Distribution list create/update + delete (admin-gated server-side). */
+export function saveDistList(
+  session: GeotabSession,
+  list: DistListInput
+): Promise<{ list: DistributionList }> {
+  return postJson<{ list: DistributionList }>("/api/dist-lists/save", { session, list });
+}
+
+export function deleteDistList(
+  session: GeotabSession,
+  id: string
+): Promise<{ deleted: boolean }> {
+  return postJson<{ deleted: boolean }>("/api/dist-lists/delete", { session, id });
 }
 
 export function fetchEventMedia(params: {

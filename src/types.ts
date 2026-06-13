@@ -158,6 +158,7 @@ export interface CameraRule {
   eventTypes: number[];
   groupIds: string[];
   recipients: string[];
+  listIds: string[];
   enabled: boolean;
   cooldownMinutes: number;
   createdBy?: string;
@@ -171,14 +172,33 @@ export interface RuleInput {
   eventTypes: number[];
   groupIds: string[];
   recipients: string[];
+  listIds: string[];
   enabled: boolean;
   cooldownMinutes: number;
 }
 
+export interface DistributionList {
+  id: string;
+  geotabDatabase: string;
+  name: string;
+  members: string[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface DistListInput {
+  id?: string;
+  name: string;
+  members: string[];
+}
+
 export interface RulesResponse {
   rules: CameraRule[];
+  distLists: DistributionList[];
   emailConfigured: boolean;
   ingestionConfigured: boolean;
+  /** Whether the current user (Geotab Administrator) may toggle/edit rules. */
+  canManage: boolean;
 }
 
 export interface PickerUser {
