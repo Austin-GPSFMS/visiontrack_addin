@@ -448,7 +448,16 @@ export default function CameraRulesApp({ api }: AppProps) {
     return (
       <div key={eventType} className="vt-rulerow">
         <div className="vt-rulerow-main">
-          <div className="vt-seg" role="group" aria-label={`${label} alerts`}>
+          <div
+            className={`vt-seg${canManageRules ? "" : " vt-seg--readonly"}`}
+            role="group"
+            aria-label={`${label} alerts`}
+            title={
+              canManageRules
+                ? undefined
+                : "Requires the 'GPSFMS - Manage Camera Rules' clearance"
+            }
+          >
             <button
               className={`vt-seg-btn${on ? " vt-seg-btn--active" : ""}`}
               onClick={() => !on && void handleToggle(eventType)}

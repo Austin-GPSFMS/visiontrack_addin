@@ -228,7 +228,21 @@ body {
 }
 
 .vt-seg-btn:disabled {
-  cursor: default;
+  cursor: not-allowed;
+}
+
+/* Read-only (no Manage Camera Rules clearance): greyed + muted. */
+.vt-seg--readonly {
+  opacity: 0.5;
+  border-color: #d6dde6;
+}
+
+.vt-seg--readonly .vt-seg-btn--active {
+  background: #8a99ad;
+}
+
+.vt-seg--readonly .vt-seg-btn--active-off {
+  background: #8a99ad;
 }
 
 .vt-seg-btn--active {
