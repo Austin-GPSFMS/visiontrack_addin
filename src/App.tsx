@@ -59,16 +59,6 @@ const dateRangeOptions = [
   GET_LAST_THIRTY_DAYS_OPTION(),
 ];
 
-// VisionTrack EventClassification (0-5) from the API reference.
-const classificationItems: ISelectionItem[] = [
-  { id: "all", name: "Classification: All" },
-  { id: "1", name: "Classification: Incident" },
-  { id: "2", name: "Classification: Near Miss" },
-  { id: "3", name: "Classification: Coaching" },
-  { id: "4", name: "Classification: False Positive" },
-  { id: "5", name: "Classification: Exoneration" },
-];
-
 // Curated driver-safety event types (mirrors the VisionTrack portal).
 // Empty selection = no type filter (all types).
 const eventTypeItems: ISelectionItem[] = SAFETY_EVENT_ENTRIES.map((e) => ({
@@ -88,7 +78,6 @@ export default function App({ api }: AppProps) {
   const [groupsById, setGroupsById] = useState<Map<string, GeotabGroup>>(new Map());
   const [selectedGroupIds, setSelectedGroupIds] = useState<string[]>(["GroupCompanyId"]);
   const [range, setRange] = useState<IDateRangeValue>(defaultRange);
-  const [classification, setClassification] = useState<string>("all");
   const [eventTypes, setEventTypes] = useState<string[]>([]);
 
   const [bootError, setBootError] = useState<string | null>(null);
@@ -138,15 +127,12 @@ export default function App({ api }: AppProps) {
     setLoading(true);
     setError(null);
     try {
-      const classifications =
-        classification === "all" ? undefined : [Number(classification)];
       const resp = await fetchEvents({
         session,
         groupIds: selectedGroupIds,
         fromDate: range.from.toISOString(),
         toDate: range.to.toISOString(),
         eventTypes: eventTypes.length > 0 ? eventTypes.map(Number) : undefined,
-        classifications,
       });
       setResult(resp);
     } catch (e) {
@@ -155,7 +141,7 @@ export default function App({ api }: AppProps) {
     } finally {
       setLoading(false);
     }
-  }, [session, range, selectedGroupIds, classification, eventTypes]);
+  }, [session, range, selectedGroupIds, eventTypes]);
 
   // Arriving from a notification email → auto-load so the clip can open.
   useEffect(() => {
@@ -223,16 +209,6 @@ export default function App({ api }: AppProps) {
           value={eventTypes}
           onChange={(selected: ISelectionItem[]) =>
             setEventTypes(selected.map((s) => String(s.id)))
-          }
-          errorHandler={(e) => setError(friendlyError(e))}
-        />
-
-        <Dropdown
-          width={280}
-          dataItems={classificationItems}
-          value={[classification]}
-          onChange={(selected: ISelectionItem[]) =>
-            setClassification(String(selected[0]?.id ?? "all"))
           }
           errorHandler={(e) => setError(friendlyError(e))}
         />
