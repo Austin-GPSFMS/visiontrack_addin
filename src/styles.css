@@ -166,6 +166,12 @@ body {
   gap: 10px;
 }
 
+.vt-actions {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
 .vt-summary {
   display: flex;
   flex-wrap: wrap;
@@ -782,6 +788,27 @@ body {
 
 .vt-modal-map {
   margin-top: 12px;
+}
+
+.vt-reqfootage {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid #eef2f7;
+}
+
+.vt-reqfootage-form {
+  display: flex;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.vt-reqfootage-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  color: #5a6b87;
 }
 
 .vt-map {

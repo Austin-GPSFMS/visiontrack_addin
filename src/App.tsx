@@ -205,17 +205,18 @@ export default function App({ api }: AppProps) {
     <div>
       <div className="vt-header">
         <h1>VisionTrack Dashboard</h1>
-        <div className="vt-headerbtns">
-          <Button type="secondary" onClick={() => setShowRequestModal(true)}>
-            Request video
-          </Button>
-          <Button
-            type="secondary"
-            onClick={() => setMode((m) => (m === "requests" ? "events" : "requests"))}
-          >
-            {mode === "requests" ? "Back to events" : "Requests"}
-          </Button>
-        </div>
+      </div>
+
+      <div className="vt-actions">
+        <Button type="secondary" onClick={() => setShowRequestModal(true)}>
+          Request video
+        </Button>
+        <Button
+          type="secondary"
+          onClick={() => setMode((m) => (m === "requests" ? "events" : "requests"))}
+        >
+          {mode === "requests" ? "← Back to events" : "Requests"}
+        </Button>
       </div>
 
       {showRequestModal && session && (
@@ -240,6 +241,12 @@ export default function App({ api }: AppProps) {
       </p>
 
       <div className="vt-toolbar">
+        <VehicleSelect
+          vehicles={vehicles}
+          value={vehicleHardwareId}
+          onChange={setVehicleHardwareId}
+        />
+
         <GroupFilterPicker
           groupsById={groupsById}
           initialGroupIds={selectedGroupIds}
@@ -252,12 +259,6 @@ export default function App({ api }: AppProps) {
           onChange={setRange}
           withCalendar
           options={dateRangeOptions}
-        />
-
-        <VehicleSelect
-          vehicles={vehicles}
-          value={vehicleHardwareId}
-          onChange={setVehicleHardwareId}
         />
 
         <Dropdown

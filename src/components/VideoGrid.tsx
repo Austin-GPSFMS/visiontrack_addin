@@ -9,7 +9,7 @@
 
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import type { GeotabSession, TrackPoint, VtEvent, VtMedia } from "../types";
-import { fetchEventMedia, fetchEventTrack } from "../api/proxy";
+import { fetchEventMedia, fetchEventTrack, requestVideo } from "../api/proxy";
 
 // Lazy-loaded so Leaflet ships as its own chunk, only fetched when a clip
 // modal with a track opens.
@@ -189,6 +189,50 @@ function VideoModal({
   const [track, setTrack] = useState<TrackPoint[] | null>(null);
   const [playheadMs, setPlayheadMs] = useState(0);
 
+  // Per-event "request more footage" (before/after the event trigger).
+  const [reqOpen, setReqOpen] = useState(false);
+  const [reqBefore, setReqBefore] = useState(15);
+  const [reqAfter, setReqAfter] = useState(15);
+  const [reqBusy, setReqBusy] = useState(false);
+  const [reqMsg, setReqMsg] = useState<string | null>(null);
+  const [reqErr, setReqErr] = useState<string | null>(null);
+
+  const channelsOnVideos = useMemo(
+    () => [...new Set(videos.map((v) => v.channel).filter((c): c is number => c != null))],
+    [videos]
+  );
+
+  const submitFootageRequest = async () => {
+    if (!ev.hardwareId) return;
+    const total = Math.min(180, reqBefore + reqAfter);
+    if (total < 5) {
+      setReqErr("Pick at least a few seconds total.");
+      return;
+    }
+    const triggerMs = new Date(ev.triggerTime).getTime();
+    const startIso = new Date(triggerMs - reqBefore * 1000).toISOString();
+    setReqBusy(true);
+    setReqErr(null);
+    setReqMsg(null);
+    try {
+      await requestVideo({
+        session,
+        hardwareId: ev.hardwareId,
+        vehicleId: ev.vehicleId,
+        startDateTime: startIso,
+        duration: total,
+        // Default to the channels this event already has; fall back to channel 0.
+        channels: channelsOnVideos.length > 0 ? channelsOnVideos : [0],
+      });
+      setReqMsg("Requested — it'll appear in the Requests view in a few minutes.");
+      setReqOpen(false);
+    } catch (e) {
+      setReqErr(String((e as Error)?.message ?? e));
+    } finally {
+      setReqBusy(false);
+    }
+  };
+
   // Fetch the GPS track for the clip window (+ lead-in) once.
   useEffect(() => {
     if (!ev.hardwareId) {
@@ -293,6 +337,50 @@ function VideoModal({
             <Suspense fallback={<div className="vt-map-empty">Loading map…</div>}>
               <TripMap points={track} clipStartMs={clipStartMs} playheadMs={playheadMs} />
             </Suspense>
+          </div>
+        )}
+
+        {ev.hardwareId && (
+          <div className="vt-reqfootage">
+            {reqMsg ? (
+              <div className="vt-pill vt-pill--ok">{reqMsg}</div>
+            ) : !reqOpen ? (
+              <button className="vt-btn" onClick={() => setReqOpen(true)}>
+                Request more footage
+              </button>
+            ) : (
+              <div className="vt-reqfootage-form">
+                <label>
+                  Seconds before
+                  <input
+                    className="vt-input vt-input--narrow"
+                    type="number"
+                    min={0}
+                    max={170}
+                    value={reqBefore}
+                    onChange={(e) => setReqBefore(Math.max(0, Number(e.target.value)))}
+                  />
+                </label>
+                <label>
+                  Seconds after
+                  <input
+                    className="vt-input vt-input--narrow"
+                    type="number"
+                    min={0}
+                    max={170}
+                    value={reqAfter}
+                    onChange={(e) => setReqAfter(Math.max(0, Number(e.target.value)))}
+                  />
+                </label>
+                <button className="vt-btn vt-btn--primary" onClick={submitFootageRequest} disabled={reqBusy}>
+                  {reqBusy ? "Requesting…" : "Request"}
+                </button>
+                <button className="vt-btn" onClick={() => setReqOpen(false)} disabled={reqBusy}>
+                  Cancel
+                </button>
+              </div>
+            )}
+            {reqErr && <div className="vt-hint" style={{ color: "#c43232" }}>{reqErr}</div>}
           </div>
         )}
       </div>
