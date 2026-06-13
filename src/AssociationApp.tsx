@@ -164,15 +164,15 @@ export default function AssociationApp({ api }: AppProps) {
           onError={(e) => setError(friendlyError(e))}
         />
         {selectedGroupIds.filter((id) => id !== "GroupCompanyId").length > 0 && (
-          <button
-            className="vt-link"
+          <Button
+            type="secondary"
             onClick={() => {
               setSelectedGroupIds([]);
               setPickerKey((k) => k + 1);
             }}
           >
             Show all vehicles
-          </button>
+          </Button>
         )}
       </div>
 
