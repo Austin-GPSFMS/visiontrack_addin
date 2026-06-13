@@ -185,6 +185,7 @@ export default function CameraRulesApp({ api }: AppProps) {
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
   const [emailOk, setEmailOk] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [canManageRules, setCanManageRules] = useState(false);
   const [canManageRecipients, setCanManageRecipients] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -232,6 +233,7 @@ export default function CameraRulesApp({ api }: AppProps) {
       setRuleByType(m);
       setDistLists(resp.distLists);
       setEmailOk(resp.emailConfigured);
+      setIsAdmin(resp.isAdmin);
       setCanManageRules(resp.canManageRules);
       setCanManageRecipients(resp.canManageRecipients);
     } catch (e) {
@@ -285,21 +287,34 @@ export default function CameraRulesApp({ api }: AppProps) {
   const handleToggle = useCallback(
     async (eventType: number) => {
       const r = ruleByType.get(eventType);
-      if (!r) {
-        openEditor(eventType);
-        return;
-      }
+      const enabling = !(r?.enabled ?? false);
+      const fields = {
+        recipients: r?.recipients ?? [],
+        listIds: r?.listIds ?? [],
+        cooldownMinutes: r?.cooldownMinutes ?? DEFAULT_COOLDOWN,
+      };
+
       // Optimistic flip so the toggle responds instantly.
       const next = new Map(ruleByType);
-      next.set(eventType, { ...r, enabled: !r.enabled });
+      next.set(eventType, {
+        id: r?.id ?? "",
+        geotabDatabase: r?.geotabDatabase ?? "",
+        name: EVENT_TYPE_LABELS[eventType] ?? `Event ${eventType}`,
+        eventTypes: [eventType],
+        groupIds: [],
+        recipients: fields.recipients,
+        listIds: fields.listIds,
+        enabled: enabling,
+        cooldownMinutes: fields.cooldownMinutes,
+        createdAt: r?.createdAt ?? "",
+        updatedAt: r?.updatedAt ?? "",
+      });
       setRuleByType(next);
       setBusy(true);
       try {
-        await persistRule(
-          eventType,
-          { recipients: r.recipients, listIds: r.listIds, cooldownMinutes: r.cooldownMinutes },
-          !r.enabled
-        );
+        await persistRule(eventType, fields, enabling);
+        // Newly enabled with no recipients yet → open the editor to add them.
+        if (enabling && !r && fields.recipients.length === 0) openEditor(eventType);
       } catch (e) {
         setError(friendlyError(e));
         await load(); // revert to server truth on failure
@@ -455,9 +470,9 @@ export default function CameraRulesApp({ api }: AppProps) {
             <div className="vt-rulerow-sub">
               {r && (r.recipients.length > 0 || r.listIds.length > 0)
                 ? `${recipientSummary(r)} · ${r.cooldownMinutes}m cooldown`
-                : canManageRules
-                  ? "Not configured — turn on to add recipients."
-                  : "Not configured."}
+                : r
+                  ? "On — no recipients yet. Configure to add."
+                  : "Off."}
             </div>
           </div>
 
@@ -486,10 +501,10 @@ export default function CameraRulesApp({ api }: AppProps) {
                 users={users}
                 value={draft.recipients}
                 onChange={(recipients) => setDraft({ ...draft, recipients })}
-                allowExternal={canManageRules}
+                allowExternal={isAdmin}
               />
               <small className="vt-hint">
-                {canManageRules
+                {isAdmin
                   ? "Geotab users are auto-limited to vehicles in their own group access; any other email gets all of this event's alerts."
                   : "Geotab users are auto-limited to vehicles in their own group access."}
               </small>
@@ -661,7 +676,7 @@ export default function CameraRulesApp({ api }: AppProps) {
                     users={users}
                     value={listDraft.members}
                     onChange={(members) => setListDraft({ ...listDraft, members })}
-                    allowExternal={canManageRules}
+                    allowExternal={isAdmin}
                   />
                 </div>
                 <div className="vt-editor-actions">

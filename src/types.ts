@@ -197,12 +197,12 @@ export interface RulesResponse {
   distLists: DistributionList[];
   emailConfigured: boolean;
   ingestionConfigured: boolean;
+  /** Full Administrator — sees all recipients + may add external emails. */
+  isAdmin: boolean;
   /** GPSFMS - Manage Camera Rules: may flip alerts on/off + delete. */
   canManageRules: boolean;
   /** GPSFMS - Manage Camera Recipients: may edit recipients (scoped). */
   canManageRecipients: boolean;
-  /** Temporary rollout aid: the caller's granted security identifier strings. */
-  grantedIds?: string[];
 }
 
 export interface PickerUser {
