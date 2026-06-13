@@ -289,6 +289,10 @@ export default function CameraRulesApp({ api }: AppProps) {
         openEditor(eventType);
         return;
       }
+      // Optimistic flip so the toggle responds instantly.
+      const next = new Map(ruleByType);
+      next.set(eventType, { ...r, enabled: !r.enabled });
+      setRuleByType(next);
       setBusy(true);
       try {
         await persistRule(
@@ -298,11 +302,12 @@ export default function CameraRulesApp({ api }: AppProps) {
         );
       } catch (e) {
         setError(friendlyError(e));
+        await load(); // revert to server truth on failure
       } finally {
         setBusy(false);
       }
     },
-    [ruleByType, persistRule]
+    [ruleByType, persistRule, load]
   );
 
   const saveEditor = useCallback(async () => {
