@@ -655,7 +655,7 @@ body {
 .vt-viewbtn {
   border: none;
   background: #fff;
-  height: 34px;
+  height: 100%;
   min-width: 120px;
   display: inline-flex;
   align-items: center;
@@ -664,17 +664,22 @@ body {
   font-size: 13px;
   cursor: pointer;
   color: #25477b;
+  box-sizing: border-box;
 }
 
-/* Reporting hub: compact search box matched to the toggle height. */
+/* Reporting hub: search box + toggle locked to the same height so they align,
+   matching the control height used elsewhere. */
 .vt-report-search {
   width: 280px;
-  height: 34px;
+  height: 38px;
   padding: 0 10px;
+  box-sizing: border-box;
 }
 
 .vt-viewtoggle {
+  height: 38px;
   align-items: stretch;
+  box-sizing: border-box;
 }
 
 .vt-viewbtn--active {
