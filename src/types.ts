@@ -197,8 +197,12 @@ export interface RulesResponse {
   distLists: DistributionList[];
   emailConfigured: boolean;
   ingestionConfigured: boolean;
-  /** Whether the current user (Geotab Administrator) may toggle/edit rules. */
-  canManage: boolean;
+  /** GPSFMS - Manage Camera Rules: may flip alerts on/off + delete. */
+  canManageRules: boolean;
+  /** GPSFMS - Manage Camera Recipients: may edit recipients (scoped). */
+  canManageRecipients: boolean;
+  /** Temporary rollout aid: the caller's granted security identifier strings. */
+  grantedIds?: string[];
 }
 
 export interface PickerUser {

@@ -145,7 +145,8 @@ export default function CameraRulesApp({ api }: AppProps) {
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
   const [emailOk, setEmailOk] = useState(true);
-  const [canManage, setCanManage] = useState(false);
+  const [canManageRules, setCanManageRules] = useState(false);
+  const [canManageRecipients, setCanManageRecipients] = useState(false);
   const [busy, setBusy] = useState(false);
   const [users, setUsers] = useState<PickerUser[]>([]);
 
@@ -191,7 +192,8 @@ export default function CameraRulesApp({ api }: AppProps) {
       setRuleByType(m);
       setDistLists(resp.distLists);
       setEmailOk(resp.emailConfigured);
-      setCanManage(resp.canManage);
+      setCanManageRules(resp.canManageRules);
+      setCanManageRecipients(resp.canManageRecipients);
     } catch (e) {
       setError(friendlyError(e));
     }
@@ -269,10 +271,14 @@ export default function CameraRulesApp({ api }: AppProps) {
       setError("Add at least one recipient or distribution list to enable this alert.");
       return;
     }
+    // Don't change the on/off state from the editor — preserve it for existing
+    // rules (recipient-only managers can't flip it); a brand-new config enables.
+    const existing = ruleByType.get(editing);
+    const enabled = existing ? existing.enabled : true;
     setBusy(true);
     setError(null);
     try {
-      await persistRule(editing, draft, true);
+      await persistRule(editing, draft, enabled);
       setInfo(`${EVENT_TYPE_LABELS[editing]} alerts saved.`);
       setEditing(null);
       setDraft(null);
@@ -386,14 +392,14 @@ export default function CameraRulesApp({ api }: AppProps) {
             <button
               className={`vt-seg-btn${on ? " vt-seg-btn--active" : ""}`}
               onClick={() => !on && void handleToggle(eventType)}
-              disabled={busy || !canManage}
+              disabled={busy || !canManageRules}
             >
               On
             </button>
             <button
               className={`vt-seg-btn${!on ? " vt-seg-btn--active-off" : ""}`}
               onClick={() => on && void handleToggle(eventType)}
-              disabled={busy || !canManage}
+              disabled={busy || !canManageRules}
             >
               Off
             </button>
@@ -404,18 +410,18 @@ export default function CameraRulesApp({ api }: AppProps) {
             <div className="vt-rulerow-sub">
               {r && (r.recipients.length > 0 || r.listIds.length > 0)
                 ? `${recipientSummary(r)} · ${r.cooldownMinutes}m cooldown`
-                : canManage
+                : canManageRules
                   ? "Not configured — turn on to add recipients."
                   : "Not configured."}
             </div>
           </div>
 
-          {canManage && (
+          {canManageRecipients && (
             <div className="vt-rulerow-actions">
               <button className="vt-link" onClick={() => openEditor(eventType)}>
                 {r ? "Edit" : "Configure"}
               </button>
-              {r && (
+              {r && canManageRules && (
                 <button
                   className="vt-link vt-link--danger"
                   onClick={() => void handleRemove(eventType)}
@@ -482,7 +488,7 @@ export default function CameraRulesApp({ api }: AppProps) {
 
             <div className="vt-editor-actions">
               <button className="vt-btn vt-btn--primary" onClick={saveEditor} disabled={busy}>
-                {busy ? "Saving…" : "Save & enable"}
+                {busy ? "Saving…" : "Save"}
               </button>
               <button
                 className="vt-btn"
@@ -513,13 +519,20 @@ export default function CameraRulesApp({ api }: AppProps) {
         cooldown window and link to the clip in the Dashboard.
       </p>
 
-      {!canManage && (
+      {!canManageRules && !canManageRecipients && (
         <Banner type="info">
-          You can view which camera-event alerts are active. Only a Geotab
-          Administrator can turn them on/off or change recipients.
+          You can view which camera-event alerts are active. Managing them
+          requires a GPSFMS camera clearance.
         </Banner>
       )}
-      {canManage && !emailOk && (
+      {!canManageRules && canManageRecipients && (
+        <Banner type="info">
+          You can manage recipients for active alerts (within your group
+          access). Turning alerts on/off requires the "GPSFMS - Manage Camera
+          Rules" clearance.
+        </Banner>
+      )}
+      {(canManageRules || canManageRecipients) && !emailOk && (
         <Banner type="warning">
           Email delivery isn't configured on the GPSFMS proxy yet — toggles will
           save but won't send until SMTP is set up.
@@ -537,7 +550,7 @@ export default function CameraRulesApp({ api }: AppProps) {
       )}
 
       {/* ---- Distribution lists ---- */}
-      {canManage && (
+      {canManageRecipients && (
         <div className="vt-rulecat">
           <div className="vt-rulecat-head vt-rulecat-head--action">
             <span>Distribution Lists</span>
