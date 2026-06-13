@@ -151,6 +151,156 @@ body {
   margin: 26px 0 4px;
 }
 
+/* ---- Camera Rules (toggle rows) ---- */
+
+.vt-rulecat {
+  border: 1px solid #dde4ec;
+  border-radius: 8px;
+  background: #fff;
+  margin-bottom: 16px;
+  overflow: hidden;
+}
+
+.vt-rulecat-head {
+  background: #f4f6f9;
+  padding: 10px 16px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #3c4a5d;
+  border-bottom: 1px solid #dde4ec;
+}
+
+.vt-rulerow {
+  border-bottom: 1px solid #eef2f7;
+}
+
+.vt-rulerow:last-child {
+  border-bottom: none;
+}
+
+.vt-rulerow-main {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 16px;
+}
+
+/* Segmented On/Off control (matches MyGeotab's rule list). */
+.vt-seg {
+  display: inline-flex;
+  border: 1px solid #c5d0de;
+  border-radius: 6px;
+  overflow: hidden;
+  flex: 0 0 auto;
+}
+
+.vt-seg-btn {
+  border: none;
+  background: #fff;
+  padding: 6px 16px;
+  font-size: 13px;
+  cursor: pointer;
+  color: #5a6b87;
+}
+
+.vt-seg-btn:disabled {
+  cursor: default;
+}
+
+.vt-seg-btn--active {
+  background: #1c7f3e;
+  color: #fff;
+}
+
+.vt-seg-btn--active-off {
+  background: #25477b;
+  color: #fff;
+}
+
+.vt-rulerow-text {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.vt-rulerow-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1a1a1a;
+}
+
+.vt-rulerow-sub {
+  font-size: 12px;
+  color: #8a99ad;
+  margin-top: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.vt-rulerow-actions {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+.vt-rulerow-editor {
+  padding: 4px 16px 18px 16px;
+  background: #fafbfd;
+  border-top: 1px dashed #dde4ec;
+  max-width: 720px;
+}
+
+.vt-btn {
+  border: 1px solid #c5d0de;
+  background: #fff;
+  color: var(--vt-navy);
+  border-radius: 6px;
+  padding: 8px 18px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.vt-btn--primary {
+  background: var(--vt-navy);
+  color: #fff;
+  border-color: var(--vt-navy);
+}
+
+.vt-btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+/* Recipient chips */
+.vt-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.vt-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #eaf0f8;
+  color: #25477b;
+  border-radius: 999px;
+  padding: 3px 6px 3px 10px;
+  font-size: 12px;
+}
+
+.vt-chip-x {
+  border: none;
+  background: none;
+  color: #5a6b87;
+  cursor: pointer;
+  font-size: 11px;
+  padding: 0 2px;
+  line-height: 1;
+}
+
 /* ---- Camera Rules editor ---- */
 
 .vt-rule-editor {
