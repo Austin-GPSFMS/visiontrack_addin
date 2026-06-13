@@ -32,6 +32,10 @@
       }
     }
   ],
-  "enableViewSecurityId": true,
+  "securityIds": [
+    { "name": "gpsfmsCameraView", "en": "GPSFMS - View Camera Dashboard" },
+    { "name": "gpsfmsCameraRules", "en": "GPSFMS - Manage Camera Rules" },
+    { "name": "gpsfmsCameraRecipients", "en": "GPSFMS - Manage Camera Recipients" }
+  ],
   "isSigned": false
 }
