@@ -202,15 +202,30 @@ function VideoModal({
     [videos]
   );
 
+  // Length of the existing clip, for the "final length" hint on the request form.
+  const clipSec = useMemo(() => {
+    const f = videos.find((v) => v.firstFrameDateTime)?.firstFrameDateTime;
+    const l = videos.find((v) => v.lastFrameDateTime)?.lastFrameDateTime;
+    if (!f || !l) return 10;
+    return Math.max(0, Math.round((new Date(l).getTime() - new Date(f).getTime()) / 1000));
+  }, [videos]);
+
   const submitFootageRequest = async () => {
     if (!ev.hardwareId) return;
-    const total = Math.min(180, reqBefore + reqAfter);
-    if (total < 5) {
-      setReqErr("Pick at least a few seconds total.");
+    // Extend the EXISTING clip: <before> + clip length + <after>.
+    const firstFrame = videos.find((v) => v.firstFrameDateTime)?.firstFrameDateTime;
+    const lastFrame = videos.find((v) => v.lastFrameDateTime)?.lastFrameDateTime;
+    const startMs = firstFrame
+      ? new Date(firstFrame).getTime()
+      : new Date(ev.triggerTime).getTime();
+    const endMs = lastFrame ? new Date(lastFrame).getTime() : startMs + 10000;
+    const clipSec = Math.max(0, Math.round((endMs - startMs) / 1000));
+    const total = reqBefore + clipSec + reqAfter;
+    if (total > 180) {
+      setReqErr(`That's ${total}s — the camera caps a single request at 180s. Trim the before/after.`);
       return;
     }
-    const triggerMs = new Date(ev.triggerTime).getTime();
-    const startIso = new Date(triggerMs - reqBefore * 1000).toISOString();
+    const startIso = new Date(startMs - reqBefore * 1000).toISOString();
     setReqBusy(true);
     setReqErr(null);
     setReqMsg(null);
@@ -378,6 +393,10 @@ function VideoModal({
                 <button className="vt-btn" onClick={() => setReqOpen(false)} disabled={reqBusy}>
                   Cancel
                 </button>
+                <div className="vt-hint" style={{ width: "100%" }}>
+                  Final clip ≈ {reqBefore}s before + {clipSec}s clip + {reqAfter}s after ={" "}
+                  <strong>{reqBefore + clipSec + reqAfter}s</strong> (camera max 180s).
+                </div>
               </div>
             )}
             {reqErr && <div className="vt-hint" style={{ color: "#c43232" }}>{reqErr}</div>}
