@@ -35,9 +35,10 @@ import type {
   GeotabGroup,
   GeotabPageState,
   GeotabSession,
+  ScopedVehicle,
 } from "./types";
 import { fetchScopedGroups, friendlyError, getSession } from "./api/geotab";
-import { fetchEvents } from "./api/proxy";
+import { fetchEvents, fetchScopedVehicles } from "./api/proxy";
 import { GroupFilterPicker } from "./components/GroupFilterPicker";
 import { EventsTable } from "./components/EventsTable";
 import { VideoGrid } from "./components/VideoGrid";
@@ -79,6 +80,8 @@ export default function App({ api }: AppProps) {
   const [selectedGroupIds, setSelectedGroupIds] = useState<string[]>(["GroupCompanyId"]);
   const [range, setRange] = useState<IDateRangeValue>(defaultRange);
   const [eventTypes, setEventTypes] = useState<string[]>([]);
+  const [vehicles, setVehicles] = useState<ScopedVehicle[]>([]);
+  const [vehicleHardwareId, setVehicleHardwareId] = useState<string>("");
 
   const [bootError, setBootError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -115,6 +118,40 @@ export default function App({ api }: AppProps) {
     };
   }, [api]);
 
+  // Load the scoped vehicle list for the picker (re-load when groups change).
+  useEffect(() => {
+    if (!session) return;
+    let cancelled = false;
+    fetchScopedVehicles(session, selectedGroupIds)
+      .then((r) => {
+        if (cancelled) return;
+        setVehicles(r.vehicles);
+        // Drop the selected vehicle if it's no longer in scope.
+        setVehicleHardwareId((cur) =>
+          cur && r.vehicles.some((v) => v.hardwareId === cur) ? cur : ""
+        );
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, [session, selectedGroupIds]);
+
+  const vehicleItems = useMemo<ISelectionItem[]>(
+    () => [
+      { id: "", name: "All vehicles" },
+      ...vehicles
+        .filter((v) => v.hardwareId)
+        .map((v) => ({
+          id: v.hardwareId as string,
+          name: v.vrn && v.vrn !== v.geotabDeviceName
+            ? `${v.geotabDeviceName} (${v.vrn})`
+            : v.geotabDeviceName,
+        })),
+    ],
+    [vehicles]
+  );
+
   const handleRun = useCallback(async () => {
     if (!session) {
       setError("No MyGeotab session yet — open this add-in from within MyGeotab.");
@@ -133,6 +170,7 @@ export default function App({ api }: AppProps) {
         fromDate: range.from.toISOString(),
         toDate: range.to.toISOString(),
         eventTypes: eventTypes.length > 0 ? eventTypes.map(Number) : undefined,
+        hardwareId: vehicleHardwareId || undefined,
       });
       setResult(resp);
     } catch (e) {
@@ -141,7 +179,7 @@ export default function App({ api }: AppProps) {
     } finally {
       setLoading(false);
     }
-  }, [session, range, selectedGroupIds, eventTypes]);
+  }, [session, range, selectedGroupIds, eventTypes, vehicleHardwareId]);
 
   // Arriving from a notification email → auto-load so the clip can open.
   useEffect(() => {
@@ -199,6 +237,18 @@ export default function App({ api }: AppProps) {
           onChange={setRange}
           withCalendar
           options={dateRangeOptions}
+        />
+
+        <Dropdown
+          width={260}
+          searchField
+          placeholder="Vehicle: All"
+          dataItems={vehicleItems}
+          value={[vehicleHardwareId]}
+          onChange={(selected: ISelectionItem[]) =>
+            setVehicleHardwareId(String(selected[0]?.id ?? ""))
+          }
+          errorHandler={(e) => setError(friendlyError(e))}
         />
 
         <Dropdown

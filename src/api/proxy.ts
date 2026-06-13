@@ -23,6 +23,7 @@ import type {
   PickerUser,
   RuleInput,
   RulesResponse,
+  ScopedVehicle,
 } from "../types";
 
 const PROXY_BASE_URL: string =
@@ -39,6 +40,8 @@ export interface EventsQuery {
   eventTypes?: number[];
   /** Optional EventClassification integer filters. */
   classifications?: number[];
+  /** Optional: narrow to a single camera within scope. */
+  hardwareId?: string;
 }
 
 async function postJson<T>(path: string, body: unknown): Promise<T> {
@@ -68,6 +71,14 @@ async function postJson<T>(path: string, body: unknown): Promise<T> {
 /** Fetch group-scoped VisionTrack safety events via the proxy. */
 export function fetchEvents(query: EventsQuery): Promise<EventsResponse> {
   return postJson<EventsResponse>("/api/events", query);
+}
+
+/** Vehicles within the caller's scope (Dashboard vehicle picker). */
+export function fetchScopedVehicles(
+  session: GeotabSession,
+  groupIds?: string[]
+): Promise<{ vehicles: ScopedVehicle[] }> {
+  return postJson<{ vehicles: ScopedVehicle[] }>("/api/vehicles", { session, groupIds });
 }
 
 /** Fetch media (thumbnail/preview/video URLs) for one event. The proxy

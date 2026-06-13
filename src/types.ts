@@ -222,6 +222,16 @@ export interface PickerUser {
   name: string;
 }
 
+/** A scoped vehicle for the Dashboard vehicle picker. */
+export interface ScopedVehicle {
+  vehicleId?: string;
+  hardwareId?: string;
+  vrn?: string;
+  geotabDeviceId: string;
+  geotabDeviceName: string;
+  geotabGroups: string;
+}
+
 /** Response envelope from the proxy /api/events endpoint. */
 export interface EventsResponse {
   events: VtEvent[];
