@@ -24,6 +24,8 @@ import type {
   RuleInput,
   RulesResponse,
   ScopedVehicle,
+  DeviceChannel,
+  VideoRequest,
 } from "../types";
 
 const PROXY_BASE_URL: string =
@@ -79,6 +81,34 @@ export function fetchScopedVehicles(
   groupIds?: string[]
 ): Promise<{ vehicles: ScopedVehicle[] }> {
   return postJson<{ vehicles: ScopedVehicle[] }>("/api/vehicles", { session, groupIds });
+}
+
+/** Camera channels for a scoped device (video-request form). */
+export function fetchDeviceChannels(params: {
+  session: GeotabSession;
+  hardwareId: string;
+  vehicleId?: string;
+}): Promise<{ channels: DeviceChannel[] }> {
+  return postJson<{ channels: DeviceChannel[] }>("/api/device-channels", params);
+}
+
+/** Submit an on-demand video clip request. */
+export function requestVideo(params: {
+  session: GeotabSession;
+  hardwareId: string;
+  vehicleId?: string;
+  startDateTime: string;
+  duration: number;
+  channels: number[];
+}): Promise<{ request: VideoRequest }> {
+  return postJson<{ request: VideoRequest }>("/api/request-video", params);
+}
+
+/** List the caller's in-scope video requests (with refreshed status). */
+export function fetchVideoRequests(
+  session: GeotabSession
+): Promise<{ requests: VideoRequest[] }> {
+  return postJson<{ requests: VideoRequest[] }>("/api/video-requests", { session });
 }
 
 /** Fetch media (thumbnail/preview/video URLs) for one event. The proxy

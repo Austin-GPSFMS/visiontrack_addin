@@ -68,6 +68,29 @@ body {
   flex: 1 1 auto;
 }
 
+/* ---- Video requests list ---- */
+
+.vt-reqlist {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.vt-reqrow {
+  border: 1px solid #dde4ec;
+  border-radius: 8px;
+  background: #fff;
+  padding: 14px 16px;
+}
+
+.vt-reqrow-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 8px;
+}
+
 /* ---- Vehicle select (searchable single-select) ---- */
 
 .vt-vehsel {

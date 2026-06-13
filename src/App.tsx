@@ -43,6 +43,8 @@ import { GroupFilterPicker } from "./components/GroupFilterPicker";
 import { EventsTable } from "./components/EventsTable";
 import { VideoGrid } from "./components/VideoGrid";
 import { VehicleSelect } from "./components/VehicleSelect";
+import { RequestVideoModal } from "./components/RequestVideoModal";
+import { RequestsList } from "./components/RequestsList";
 import { SAFETY_EVENT_ENTRIES } from "./utils/eventTypes";
 
 interface AppProps {
@@ -89,6 +91,8 @@ export default function App({ api }: AppProps) {
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<EventsResponse | null>(null);
   const [view, setView] = useState<"videos" | "table">("videos");
+  const [mode, setMode] = useState<"events" | "requests">("events");
+  const [showRequestModal, setShowRequestModal] = useState(false);
 
   // Deep link from notification emails: #addin-…,eventId:<id> → auto-open clip.
   const deepLinkEventId = useMemo(() => {
@@ -201,8 +205,33 @@ export default function App({ api }: AppProps) {
     <div>
       <div className="vt-header">
         <h1>VisionTrack Dashboard</h1>
+        <div className="vt-headerbtns">
+          <Button type="secondary" onClick={() => setShowRequestModal(true)}>
+            Request video
+          </Button>
+          <Button
+            type="secondary"
+            onClick={() => setMode((m) => (m === "requests" ? "events" : "requests"))}
+          >
+            {mode === "requests" ? "Back to events" : "Requests"}
+          </Button>
+        </div>
       </div>
 
+      {showRequestModal && session && (
+        <RequestVideoModal
+          session={session}
+          vehicles={vehicles}
+          initialVehicleHardwareId={vehicleHardwareId}
+          onClose={() => setShowRequestModal(false)}
+          onSubmitted={() => setMode("requests")}
+        />
+      )}
+
+      {mode === "requests" && session ? (
+        <RequestsList session={session} />
+      ) : (
+        <>
       <p className="vt-scope-note">
         Showing only vehicles within your group scope
         {result
@@ -281,6 +310,8 @@ export default function App({ api }: AppProps) {
           ) : (
             <EventsTable events={result.events} />
           )}
+        </>
+      )}
         </>
       )}
     </div>

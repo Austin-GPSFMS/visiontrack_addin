@@ -222,6 +222,26 @@ export interface PickerUser {
   name: string;
 }
 
+export interface DeviceChannel {
+  channel: number;
+  label: string;
+}
+
+/** A submitted custom video request + its status. */
+export interface VideoRequest {
+  id: string;
+  vehicleLabel?: string;
+  hardwareId: string;
+  startIso: string;
+  duration: number;
+  channels: number[];
+  /** DeviceCommandState 0-7. */
+  state?: number;
+  media?: VtMedia[];
+  error?: string;
+  createdAt: string;
+}
+
 /** A scoped vehicle for the Dashboard vehicle picker. */
 export interface ScopedVehicle {
   vehicleId?: string;
