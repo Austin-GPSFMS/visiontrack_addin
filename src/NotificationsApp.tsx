@@ -17,9 +17,10 @@ import type {
   GeotabApi,
   GeotabGroup,
   GeotabSession,
+  PickerUser,
 } from "./types";
 import { fetchScopedGroups, friendlyError, getSession } from "./api/geotab";
-import { deleteRule, fetchRules, saveRule } from "./api/proxy";
+import { deleteRule, fetchRuleUsers, fetchRules, saveRule } from "./api/proxy";
 import { GroupFilterPicker } from "./components/GroupFilterPicker";
 import { EVENT_TYPE_LABELS } from "./utils/eventTypes";
 
@@ -64,6 +65,7 @@ export default function CameraRulesApp({ api }: AppProps) {
   const [info, setInfo] = useState<string | null>(null);
   const [emailOk, setEmailOk] = useState(true);
   const [busy, setBusy] = useState(false);
+  const [users, setUsers] = useState<PickerUser[]>([]);
 
   // rule per event type (eventTypes is always a single id in this model)
   const [ruleByType, setRuleByType] = useState<Map<number, CameraRule>>(new Map());
@@ -81,6 +83,10 @@ export default function CameraRulesApp({ api }: AppProps) {
         if (cancelled) return;
         setSession(s);
         setGroupsById(g);
+        // Load the user list for the recipient picker (best-effort).
+        fetchRuleUsers(s)
+          .then((r) => !cancelled && setUsers(r.users))
+          .catch(() => undefined);
       })
       .catch((e) => !cancelled && setBootError(friendlyError(e)));
     return () => {
@@ -179,25 +185,39 @@ export default function CameraRulesApp({ api }: AppProps) {
     [ruleByType, persistRule]
   );
 
-  const addRecipients = (raw: string) => {
+  const addRecipient = (email: string) => {
     if (!draft) return;
-    const parts = raw.split(/[,\s;]+/).map((s) => s.trim()).filter(Boolean);
-    if (parts.length === 0) return;
-    const next = new Set(draft.recipients);
-    let bad = "";
-    for (const p of parts) {
-      if (EMAIL_RE.test(p)) next.add(p);
-      else bad = p;
+    const e = email.trim();
+    if (!e || !EMAIL_RE.test(e)) return;
+    if (draft.recipients.includes(e)) {
+      setRecipientInput("");
+      return;
     }
-    setDraft({ ...draft, recipients: [...next] });
-    setRecipientInput(bad);
+    setDraft({ ...draft, recipients: [...draft.recipients, e] });
+    setRecipientInput("");
   };
+
+  // Users matching the search box that aren't already selected.
+  const userMatches = (() => {
+    if (!draft) return [];
+    const q = recipientInput.trim().toLowerCase();
+    if (!q) return [];
+    return users
+      .filter(
+        (u) =>
+          !draft.recipients.includes(u.email) &&
+          (u.name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q))
+      )
+      .slice(0, 8);
+  })();
 
   const saveEditor = useCallback(async () => {
     if (editing == null || !draft) return;
     let recipients = draft.recipients;
     const pending = recipientInput.trim();
-    if (pending && EMAIL_RE.test(pending)) recipients = [...recipients, pending];
+    if (pending && EMAIL_RE.test(pending) && !recipients.includes(pending)) {
+      recipients = [...recipients, pending];
+    }
     if (recipients.length === 0) {
       setError("Add at least one recipient email to enable this alert.");
       return;
@@ -282,7 +302,9 @@ export default function CameraRulesApp({ api }: AppProps) {
             <div className="vt-rulerow-name">{label}</div>
             <div className="vt-rulerow-sub">
               {r && r.recipients.length > 0
-                ? `${r.recipients.join(", ")} · ${groupSummary(r.groupIds)} · ${r.cooldownMinutes}m cooldown`
+                ? `${r.recipients
+                    .map((e) => users.find((u) => u.email === e)?.name ?? e)
+                    .join(", ")} · ${groupSummary(r.groupIds)} · ${r.cooldownMinutes}m cooldown`
                 : "Not configured — turn on to add recipients."}
             </div>
           </div>
@@ -305,40 +327,65 @@ export default function CameraRulesApp({ api }: AppProps) {
         {isEditing && draft && (
           <div className="vt-rulerow-editor">
             <div className="vt-field">
-              <span>Recipient emails</span>
+              <span>Recipients</span>
               <div className="vt-chips">
-                {draft.recipients.map((rcp) => (
-                  <span key={rcp} className="vt-chip">
-                    {rcp}
-                    <button
-                      type="button"
-                      className="vt-chip-x"
-                      onClick={() =>
-                        setDraft({
-                          ...draft,
-                          recipients: draft.recipients.filter((x) => x !== rcp),
-                        })
-                      }
-                      aria-label={`Remove ${rcp}`}
-                    >
-                      ✕
-                    </button>
-                  </span>
-                ))}
+                {draft.recipients.map((rcp) => {
+                  const u = users.find((x) => x.email === rcp);
+                  return (
+                    <span key={rcp} className="vt-chip" title={rcp}>
+                      {u ? u.name : rcp}
+                      <button
+                        type="button"
+                        className="vt-chip-x"
+                        onClick={() =>
+                          setDraft({
+                            ...draft,
+                            recipients: draft.recipients.filter((x) => x !== rcp),
+                          })
+                        }
+                        aria-label={`Remove ${rcp}`}
+                      >
+                        ✕
+                      </button>
+                    </span>
+                  );
+                })}
               </div>
-              <input
-                className="vt-input"
-                value={recipientInput}
-                onChange={(e) => setRecipientInput(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" || e.key === "," || e.key === " ") {
-                    e.preventDefault();
-                    addRecipients(recipientInput);
-                  }
-                }}
-                onBlur={() => recipientInput.trim() && addRecipients(recipientInput)}
-                placeholder="Type an email, press Enter"
-              />
+              <div className="vt-typeahead">
+                <input
+                  className="vt-input"
+                  value={recipientInput}
+                  onChange={(e) => setRecipientInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      if (userMatches[0]) addRecipient(userMatches[0].email);
+                      else addRecipient(recipientInput);
+                    }
+                  }}
+                  placeholder="Search users by name or email…"
+                />
+                {userMatches.length > 0 && (
+                  <div className="vt-typeahead-menu">
+                    {userMatches.map((u) => (
+                      <button
+                        key={u.email}
+                        type="button"
+                        className="vt-typeahead-item"
+                        onClick={() => addRecipient(u.email)}
+                      >
+                        <span className="vt-ta-name">{u.name}</span>
+                        <span className="vt-ta-email">{u.email}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <small className="vt-hint">
+                Pick Geotab users (each is auto-limited to vehicles in their own
+                group access), or type any email and press Enter for a shared
+                inbox.
+              </small>
             </div>
 
             <div className="vt-field">

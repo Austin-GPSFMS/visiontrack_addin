@@ -301,6 +301,50 @@ body {
   line-height: 1;
 }
 
+/* Recipient typeahead */
+.vt-typeahead {
+  position: relative;
+}
+
+.vt-typeahead-menu {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(100% + 2px);
+  background: #fff;
+  border: 1px solid #c5d0de;
+  border-radius: 6px;
+  box-shadow: 0 6px 18px rgba(37, 71, 123, 0.15);
+  z-index: 50;
+  max-height: 260px;
+  overflow-y: auto;
+}
+
+.vt-typeahead-item {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  text-align: left;
+  border: none;
+  background: #fff;
+  padding: 8px 12px;
+  cursor: pointer;
+}
+
+.vt-typeahead-item:hover {
+  background: #eaf0f8;
+}
+
+.vt-ta-name {
+  font-size: 13px;
+  color: #1a1a1a;
+}
+
+.vt-ta-email {
+  font-size: 12px;
+  color: #8a99ad;
+}
+
 /* ---- Camera Rules editor ---- */
 
 .vt-rule-editor {

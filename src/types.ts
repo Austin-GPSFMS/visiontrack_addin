@@ -181,6 +181,11 @@ export interface RulesResponse {
   ingestionConfigured: boolean;
 }
 
+export interface PickerUser {
+  email: string;
+  name: string;
+}
+
 /** Response envelope from the proxy /api/events endpoint. */
 export interface EventsResponse {
   events: VtEvent[];

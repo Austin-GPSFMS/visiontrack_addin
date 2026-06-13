@@ -17,6 +17,7 @@ import type {
   EventMediaResponse,
   EventsResponse,
   GeotabSession,
+  PickerUser,
   RuleInput,
   RulesResponse,
 } from "../types";
@@ -93,6 +94,13 @@ export function deleteRule(
   id: string
 ): Promise<{ deleted: boolean }> {
   return postJson<{ deleted: boolean }>("/api/rules/delete", { session, id });
+}
+
+/** Geotab users the caller can see, for the recipient picker. */
+export function fetchRuleUsers(
+  session: GeotabSession
+): Promise<{ users: PickerUser[] }> {
+  return postJson<{ users: PickerUser[] }>("/api/rules/users", { session });
 }
 
 export function fetchEventMedia(params: {
