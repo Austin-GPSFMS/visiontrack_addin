@@ -26,6 +26,7 @@ export default defineConfig({
         index: "index.html",
         association: "association.html",
         notifications: "notifications.html",
+        watchdog: "watchdog.html",
       },
       output: {
         entryFileNames: "assets/[name]-[hash].js",

@@ -30,6 +30,13 @@
       "menuName": {
         "en": "Camera Rules"
       }
+    },
+    {
+      "url": "https://austin-gpsfms.github.io/visiontrack_addin/dist/watchdog.html",
+      "path": "GpsfmsVisionTrackMenu/",
+      "menuName": {
+        "en": "Watchdog"
+      }
     }
   ],
   "securityIds": [

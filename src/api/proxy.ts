@@ -26,6 +26,7 @@ import type {
   ScopedVehicle,
   DeviceChannel,
   VideoRequest,
+  WatchdogResponse,
 } from "../types";
 
 const PROXY_BASE_URL: string =
@@ -81,6 +82,14 @@ export function fetchScopedVehicles(
   groupIds?: string[]
 ): Promise<{ vehicles: ScopedVehicle[] }> {
   return postJson<{ vehicles: ScopedVehicle[] }>("/api/vehicles", { session, groupIds });
+}
+
+/** Watchdog: scoped vehicles with last Geotab + camera contact. */
+export function fetchWatchdog(
+  session: GeotabSession,
+  groupIds?: string[]
+): Promise<WatchdogResponse> {
+  return postJson<WatchdogResponse>("/api/watchdog", { session, groupIds });
 }
 
 /** Camera channels for a scoped device (video-request form). */

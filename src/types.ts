@@ -227,6 +227,20 @@ export interface DeviceChannel {
   label: string;
 }
 
+export interface WatchdogRow {
+  geotabDeviceName: string;
+  vrn?: string;
+  geotabGroups: string;
+  hardwareId?: string;
+  geotabLastComm: string | null;
+  cameraLastReported: string | null;
+}
+
+export interface WatchdogResponse {
+  rows: WatchdogRow[];
+  generatedAt: string;
+}
+
 /** A submitted custom video request + its status. */
 export interface VideoRequest {
   id: string;
