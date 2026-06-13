@@ -367,6 +367,14 @@ body {
   color: #8a99ad;
 }
 
+.vt-typeahead-more {
+  padding: 6px 12px;
+  font-size: 11px;
+  color: #8a99ad;
+  border-top: 1px solid #eef2f7;
+  background: #fafbfd;
+}
+
 /* ---- Camera Rules editor ---- */
 
 .vt-rule-editor {

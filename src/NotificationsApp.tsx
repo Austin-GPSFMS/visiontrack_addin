@@ -44,39 +44,64 @@ const CATEGORIES: Array<{ label: string; types: number[] }> = [
   { label: "Other", types: [7, 42, 24, 25] },
 ];
 
-/** Reusable email picker: searchable Geotab-user dropdown + chips, with
- *  free-typed email fallback. `value` is a list of emails. */
+/** Reusable email picker: searchable Geotab-user dropdown + chips. The menu
+ *  opens on focus (showing users to choose from) and filters as you type.
+ *  When `allowExternal` is false, only known account users can be added —
+ *  arbitrary emails are rejected (they'd be unscoped). */
 function RecipientPicker({
   users,
   value,
   onChange,
-  placeholder = "Search users by name or email…",
+  allowExternal,
 }: {
   users: PickerUser[];
   value: string[];
   onChange: (next: string[]) => void;
-  placeholder?: string;
+  allowExternal: boolean;
 }) {
   const [input, setInput] = useState("");
-  const q = input.trim().toLowerCase();
-  const matches = q
-    ? users
-        .filter(
-          (u) =>
-            !value.includes(u.email) &&
-            (u.name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q))
-        )
-        .slice(0, 8)
-    : [];
+  const [open, setOpen] = useState(false);
+  const [hint, setHint] = useState("");
 
-  const add = (email: string) => {
-    const e = email.trim();
-    if (!e || !EMAIL_RE.test(e) || value.includes(e)) {
-      setInput("");
-      return;
-    }
-    onChange([...value, e]);
+  const q = input.trim().toLowerCase();
+  const available = users.filter((u) => !value.includes(u.email));
+  const matches = (q
+    ? available.filter(
+        (u) =>
+          u.name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q)
+      )
+    : available
+  ).slice(0, 10);
+  const moreCount = (q
+    ? available.filter(
+        (u) =>
+          u.name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q)
+      ).length
+    : available.length) - matches.length;
+
+  const addUser = (email: string) => {
+    if (!value.includes(email)) onChange([...value, email]);
     setInput("");
+    setHint("");
+  };
+
+  const commitTyped = () => {
+    const e = input.trim();
+    if (!e) return;
+    // Prefer an exact/first user match.
+    const exact = available.find((u) => u.email.toLowerCase() === e.toLowerCase());
+    if (exact) return addUser(exact.email);
+    if (matches[0]) return addUser(matches[0].email);
+    // No user match — only allow if external addresses are permitted.
+    if (EMAIL_RE.test(e)) {
+      if (allowExternal) {
+        if (!value.includes(e)) onChange([...value, e]);
+        setInput("");
+        setHint("");
+      } else {
+        setHint("Only users in this account can be added.");
+      }
+    }
   };
 
   return (
@@ -103,32 +128,47 @@ function RecipientPicker({
         <input
           className="vt-input"
           value={input}
-          onChange={(e) => setInput(e.target.value)}
+          onChange={(e) => {
+            setInput(e.target.value);
+            setHint("");
+            setOpen(true);
+          }}
+          onFocus={() => setOpen(true)}
           onKeyDown={(e) => {
             if (e.key === "Enter") {
               e.preventDefault();
-              add(matches[0] ? matches[0].email : input);
+              commitTyped();
             }
           }}
-          onBlur={() => input.trim() && add(input)}
-          placeholder={placeholder}
+          onBlur={() => {
+            // Delay so a menu click registers before closing.
+            setTimeout(() => setOpen(false), 150);
+          }}
+          placeholder={allowExternal ? "Search users, or type an email…" : "Search users…"}
         />
-        {matches.length > 0 && (
+        {open && matches.length > 0 && (
           <div className="vt-typeahead-menu">
             {matches.map((u) => (
               <button
                 key={u.email}
                 type="button"
                 className="vt-typeahead-item"
-                onClick={() => add(u.email)}
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => addUser(u.email)}
               >
                 <span className="vt-ta-name">{u.name}</span>
                 <span className="vt-ta-email">{u.email}</span>
               </button>
             ))}
+            {moreCount > 0 && (
+              <div className="vt-typeahead-more">
+                +{moreCount} more — keep typing to narrow
+              </div>
+            )}
           </div>
         )}
       </div>
+      {hint && <small className="vt-hint" style={{ color: "#c43232" }}>{hint}</small>}
     </>
   );
 }
@@ -441,10 +481,12 @@ export default function CameraRulesApp({ api }: AppProps) {
                 users={users}
                 value={draft.recipients}
                 onChange={(recipients) => setDraft({ ...draft, recipients })}
+                allowExternal={canManageRules}
               />
               <small className="vt-hint">
-                Geotab users are auto-limited to vehicles in their own group
-                access; any other email gets all of this event's alerts.
+                {canManageRules
+                  ? "Geotab users are auto-limited to vehicles in their own group access; any other email gets all of this event's alerts."
+                  : "Geotab users are auto-limited to vehicles in their own group access."}
               </small>
             </div>
 
@@ -614,6 +656,7 @@ export default function CameraRulesApp({ api }: AppProps) {
                     users={users}
                     value={listDraft.members}
                     onChange={(members) => setListDraft({ ...listDraft, members })}
+                    allowExternal={canManageRules}
                   />
                 </div>
                 <div className="vt-editor-actions">
