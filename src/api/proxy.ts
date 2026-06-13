@@ -17,6 +17,7 @@ import type {
   DistListInput,
   DistributionList,
   EventMediaResponse,
+  EventTrackResponse,
   EventsResponse,
   GeotabSession,
   PickerUser,
@@ -127,4 +128,15 @@ export function fetchEventMedia(params: {
   vehicleId?: string;
 }): Promise<EventMediaResponse> {
   return postJson<EventMediaResponse>("/api/event-media", params);
+}
+
+/** GPS breadcrumbs for a clip window (for the animated trip map). */
+export function fetchEventTrack(params: {
+  session: GeotabSession;
+  hardwareId: string;
+  vehicleId?: string;
+  fromDate: string;
+  toDate: string;
+}): Promise<EventTrackResponse> {
+  return postJson<EventTrackResponse>("/api/event-track", params);
 }

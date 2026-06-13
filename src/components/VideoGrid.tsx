@@ -7,9 +7,16 @@
  * directly from VisionTrack's pre-signed URL — bytes never touch the proxy.
  */
 
-import { useEffect, useMemo, useRef, useState } from "react";
-import type { GeotabSession, VtEvent, VtMedia } from "../types";
-import { fetchEventMedia } from "../api/proxy";
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
+import type { GeotabSession, TrackPoint, VtEvent, VtMedia } from "../types";
+import { fetchEventMedia, fetchEventTrack } from "../api/proxy";
+
+// Lazy-loaded so Leaflet ships as its own chunk, only fetched when a clip
+// modal with a track opens.
+const TripMap = lazy(() => import("./TripMap"));
+
+/** Seconds of GPS lead-in shown before the clip's first frame, for context. */
+const TRACK_LEADIN_SEC = 20;
 
 const MEDIA_VIDEO = 3;
 const MEDIA_PREVIEW = 4;
@@ -157,10 +164,12 @@ function VideoCard({
 }
 
 function VideoModal({
+  session,
   ev,
   media,
   onClose,
 }: {
+  session: GeotabSession;
   ev: VtEvent;
   media: VtMedia[];
   onClose: () => void;
@@ -170,6 +179,39 @@ function VideoModal({
     [media]
   );
   const videoRefs = useRef<Array<HTMLVideoElement | null>>([]);
+
+  // Clip start epoch (video currentTime 0) from the first video's frame times.
+  const clipStartMs = useMemo(() => {
+    const f = videos.find((v) => v.firstFrameDateTime)?.firstFrameDateTime;
+    return f ? new Date(f).getTime() : new Date(ev.triggerTime).getTime();
+  }, [videos, ev.triggerTime]);
+
+  const [track, setTrack] = useState<TrackPoint[] | null>(null);
+  const [playheadMs, setPlayheadMs] = useState(0);
+
+  // Fetch the GPS track for the clip window (+ lead-in) once.
+  useEffect(() => {
+    if (!ev.hardwareId) {
+      setTrack([]);
+      return;
+    }
+    const lastFrame = videos.find((v) => v.lastFrameDateTime)?.lastFrameDateTime;
+    const toMs = lastFrame ? new Date(lastFrame).getTime() : clipStartMs + 15000;
+    let cancelled = false;
+    fetchEventTrack({
+      session,
+      hardwareId: ev.hardwareId,
+      vehicleId: ev.vehicleId,
+      fromDate: new Date(clipStartMs - TRACK_LEADIN_SEC * 1000).toISOString(),
+      toDate: new Date(toMs + 2000).toISOString(),
+    })
+      .then((r) => !cancelled && setTrack(r.points))
+      .catch(() => !cancelled && setTrack([]));
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -232,12 +274,25 @@ function VideoModal({
                   onPlay={(e) => syncFrom(e.currentTarget, "play")}
                   onPause={(e) => syncFrom(e.currentTarget, "pause")}
                   onSeeked={(e) => syncFrom(e.currentTarget, "seek")}
+                  onTimeUpdate={
+                    i === 0
+                      ? (e) => setPlayheadMs(e.currentTarget.currentTime * 1000)
+                      : undefined
+                  }
                 />
                 <div className="vt-modal-chanlabel">
                   {m.channelLabel ?? `Channel ${m.channel ?? i}`}
                 </div>
               </div>
             ))}
+          </div>
+        )}
+
+        {track && track.length > 0 && (
+          <div className="vt-modal-map">
+            <Suspense fallback={<div className="vt-map-empty">Loading map…</div>}>
+              <TripMap points={track} clipStartMs={clipStartMs} playheadMs={playheadMs} />
+            </Suspense>
           </div>
         )}
       </div>
@@ -323,6 +378,7 @@ export function VideoGrid({ session, events, autoOpenEventId }: VideoGridProps) 
       )}
       {playing && (
         <VideoModal
+          session={session}
           ev={playing.ev}
           media={playing.media}
           onClose={() => setPlaying(null)}

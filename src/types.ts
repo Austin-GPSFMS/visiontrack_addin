@@ -115,6 +115,18 @@ export interface EventMediaResponse {
   media: VtMedia[];
 }
 
+/** One GPS breadcrumb (proxy /api/event-track). */
+export interface TrackPoint {
+  t: string; // ISO timestamp
+  lat: number;
+  lon: number;
+  speedKph?: number;
+}
+
+export interface EventTrackResponse {
+  points: TrackPoint[];
+}
+
 /** Device Association report (read-only) from /api/associations. */
 export type AssociationStatus = "paired" | "no_camera" | "no_vt_match" | "no_vin";
 
