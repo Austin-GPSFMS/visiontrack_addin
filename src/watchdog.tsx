@@ -2,7 +2,7 @@
 
 import { StrictMode } from "react";
 import { createRoot, Root } from "react-dom/client";
-import WatchdogApp from "./WatchdogApp";
+import ReportingApp from "./ReportingApp";
 import type { GeotabApi, GeotabPageState } from "./types";
 import "./styles.css";
 
@@ -27,7 +27,7 @@ function mount() {
   if (!root) root = createRoot(container);
   root.render(
     <StrictMode>
-      <WatchdogApp api={currentApi} />
+      <ReportingApp api={currentApi} />
     </StrictMode>
   );
 }

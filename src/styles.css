@@ -68,6 +68,77 @@ body {
   flex: 1 1 auto;
 }
 
+/* ---- Reporting hub (report cards) ---- */
+
+.vt-report-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 16px;
+}
+
+.vt-report-card {
+  border: 1px solid #dde4ec;
+  border-radius: 8px;
+  background: #fff;
+  padding: 16px;
+  cursor: pointer;
+  transition: box-shadow 0.15s ease, border-color 0.15s ease;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.vt-report-card:hover {
+  box-shadow: 0 4px 14px rgba(37, 71, 123, 0.15);
+  border-color: #c5d0de;
+}
+
+.vt-report-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.vt-report-card-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--vt-navy);
+}
+
+.vt-report-card-desc {
+  font-size: 13px;
+  color: #3c4a5d;
+  flex: 1 1 auto;
+}
+
+.vt-report-card-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.vt-tag {
+  background: #eef2f7;
+  color: #5a6b87;
+  border-radius: 4px;
+  padding: 2px 8px;
+  font-size: 11px;
+}
+
+.vt-star {
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-size: 18px;
+  line-height: 1;
+  color: #c5d0de;
+  padding: 0 2px;
+}
+
+.vt-star--on {
+  color: #f0a500;
+}
+
 /* ---- Video requests list ---- */
 
 .vt-reqlist {
