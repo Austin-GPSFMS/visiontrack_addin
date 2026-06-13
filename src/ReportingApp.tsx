@@ -9,6 +9,7 @@ import { Banner } from "@geotab/zenith";
 import type { GeotabApi, GeotabSession } from "./types";
 import { friendlyError, getSession } from "./api/geotab";
 import { WatchdogReport } from "./reports/WatchdogReport";
+import { ScorecardReport } from "./reports/ScorecardReport";
 
 interface AppProps {
   api: GeotabApi | null;
@@ -31,7 +32,14 @@ const REPORTS: ReportDef[] = [
     tags: ["Device & Installation", "Safety"],
     render: (s) => <WatchdogReport session={s} />,
   },
-  // Scorecard and future reports slot in here.
+  {
+    id: "scorecard",
+    title: "Safety Scorecard",
+    description:
+      "Weighted, distance-normalized safety score per vehicle or driver — combines Geotab exceptions with VisionTrack camera events. Configurable factors and weights.",
+    tags: ["Safety", "Productivity"],
+    render: (s) => <ScorecardReport session={s} />,
+  },
 ];
 
 const FAV_KEY = "vt-report-favorites";

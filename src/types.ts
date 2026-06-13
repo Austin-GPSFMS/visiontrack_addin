@@ -241,6 +241,54 @@ export interface WatchdogResponse {
   generatedAt: string;
 }
 
+// ---- Safety Scorecard ----
+export type ScoreFactorKind = "geotab" | "camera";
+export type ScoreFormula = "uniform" | "speeding" | "seatbelt";
+
+export interface ScoreFactor {
+  kind: ScoreFactorKind;
+  key: string;
+  label: string;
+  weight: number;
+  formula: ScoreFormula;
+}
+
+export interface ScorecardConfig {
+  factors: ScoreFactor[];
+  bands: { low: number; mild: number; medium: number };
+}
+
+export interface ScoredFactor {
+  key: string;
+  label: string;
+  count: number;
+  subScore: number | null;
+}
+
+export interface ScoredSubject {
+  id: string;
+  name: string;
+  group: string;
+  distance: number;
+  totalScore: number | null;
+  classification: string;
+  factors: ScoredFactor[];
+  totalOccurrences: number;
+}
+
+export interface ScorecardRunResponse {
+  rows: ScoredSubject[];
+  config: ScorecardConfig;
+  unit: "km" | "miles";
+  runBy: "vehicle" | "driver";
+  generatedAt: string;
+}
+
+export interface GeotabRuleOption {
+  id: string;
+  name: string;
+}
+
 /** A submitted custom video request + its status. */
 export interface VideoRequest {
   id: string;

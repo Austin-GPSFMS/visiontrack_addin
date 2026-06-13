@@ -27,6 +27,9 @@ import type {
   DeviceChannel,
   VideoRequest,
   WatchdogResponse,
+  ScorecardConfig,
+  ScorecardRunResponse,
+  GeotabRuleOption,
 } from "../types";
 
 const PROXY_BASE_URL: string =
@@ -90,6 +93,37 @@ export function fetchWatchdog(
   groupIds?: string[]
 ): Promise<WatchdogResponse> {
   return postJson<WatchdogResponse>("/api/watchdog", { session, groupIds });
+}
+
+/** Scorecard: config + manage rights, save config, list Geotab rules, run. */
+export function fetchScorecardConfig(
+  session: GeotabSession
+): Promise<{ config: ScorecardConfig; canManage: boolean }> {
+  return postJson("/api/scorecard/config", { session });
+}
+
+export function saveScorecardConfig(
+  session: GeotabSession,
+  config: ScorecardConfig
+): Promise<{ config: ScorecardConfig }> {
+  return postJson("/api/scorecard/config/save", { session, config });
+}
+
+export function fetchScorecardRules(
+  session: GeotabSession
+): Promise<{ rules: GeotabRuleOption[] }> {
+  return postJson("/api/scorecard/rules", { session });
+}
+
+export function runScorecard(params: {
+  session: GeotabSession;
+  fromDate: string;
+  toDate: string;
+  runBy: "vehicle" | "driver";
+  unit: "km" | "miles";
+  groupIds?: string[];
+}): Promise<ScorecardRunResponse> {
+  return postJson("/api/scorecard/run", params);
 }
 
 /** Camera channels for a scoped device (video-request form). */
