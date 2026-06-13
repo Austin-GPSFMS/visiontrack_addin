@@ -68,6 +68,74 @@ body {
   flex: 1 1 auto;
 }
 
+/* ---- Vehicle select (searchable single-select) ---- */
+
+.vt-vehsel {
+  position: relative;
+  flex: 0 0 auto;
+}
+
+.vt-vehsel-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-width: 220px;
+  padding: 9px 12px;
+  border: 1px solid #c5d0de;
+  border-radius: 6px;
+  background: #fff;
+  font-size: 14px;
+  color: #1a1a1a;
+  cursor: pointer;
+}
+
+.vt-vehsel-caret {
+  color: #5a6b87;
+  font-size: 11px;
+}
+
+.vt-vehsel-menu {
+  position: absolute;
+  left: 0;
+  top: calc(100% + 4px);
+  width: 300px;
+  background: #fff;
+  border: 1px solid #c5d0de;
+  border-radius: 8px;
+  box-shadow: 0 6px 18px rgba(37, 71, 123, 0.18);
+  z-index: 60;
+  padding: 8px;
+}
+
+.vt-vehsel-list {
+  max-height: 280px;
+  overflow-y: auto;
+  margin-top: 6px;
+}
+
+.vt-vehsel-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  border: none;
+  background: #fff;
+  padding: 8px 10px;
+  font-size: 13px;
+  color: #1a1a1a;
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+.vt-vehsel-item:hover {
+  background: #eaf0f8;
+}
+
+.vt-vehsel-item--active {
+  background: #25477b;
+  color: #fff;
+}
+
 /* ---- Device Association ---- */
 
 .vt-headerbtns {

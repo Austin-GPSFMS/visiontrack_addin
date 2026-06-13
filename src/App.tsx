@@ -42,6 +42,7 @@ import { fetchEvents, fetchScopedVehicles } from "./api/proxy";
 import { GroupFilterPicker } from "./components/GroupFilterPicker";
 import { EventsTable } from "./components/EventsTable";
 import { VideoGrid } from "./components/VideoGrid";
+import { VehicleSelect } from "./components/VehicleSelect";
 import { SAFETY_EVENT_ENTRIES } from "./utils/eventTypes";
 
 interface AppProps {
@@ -137,21 +138,6 @@ export default function App({ api }: AppProps) {
     };
   }, [session, selectedGroupIds]);
 
-  const vehicleItems = useMemo<ISelectionItem[]>(
-    () => [
-      { id: "", name: "All vehicles" },
-      ...vehicles
-        .filter((v) => v.hardwareId)
-        .map((v) => ({
-          id: v.hardwareId as string,
-          name: v.vrn && v.vrn !== v.geotabDeviceName
-            ? `${v.geotabDeviceName} (${v.vrn})`
-            : v.geotabDeviceName,
-        })),
-    ],
-    [vehicles]
-  );
-
   const handleRun = useCallback(async () => {
     if (!session) {
       setError("No MyGeotab session yet — open this add-in from within MyGeotab.");
@@ -239,16 +225,10 @@ export default function App({ api }: AppProps) {
           options={dateRangeOptions}
         />
 
-        <Dropdown
-          width={260}
-          searchField
-          placeholder="Vehicle: All"
-          dataItems={vehicleItems}
-          value={[vehicleHardwareId]}
-          onChange={(selected: ISelectionItem[]) =>
-            setVehicleHardwareId(String(selected[0]?.id ?? ""))
-          }
-          errorHandler={(e) => setError(friendlyError(e))}
+        <VehicleSelect
+          vehicles={vehicles}
+          value={vehicleHardwareId}
+          onChange={setVehicleHardwareId}
         />
 
         <Dropdown
