@@ -655,17 +655,22 @@ body {
 .vt-viewbtn {
   border: none;
   background: #fff;
-  height: 38px;
-  padding: 0 18px;
+  height: 34px;
+  min-width: 120px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 16px;
   font-size: 13px;
   cursor: pointer;
   color: #25477b;
 }
 
-/* Reporting hub: search box matched to the toggle height + aligned. */
+/* Reporting hub: compact search box matched to the toggle height. */
 .vt-report-search {
   width: 280px;
-  height: 38px;
+  height: 34px;
+  padding: 0 10px;
 }
 
 .vt-viewtoggle {
