@@ -77,6 +77,10 @@ export async function exportScorecard(
     c.font = HEADER_FONT;
   });
   sheet.views = [{ state: "frozen", ySplit: 1 }];
+  // Open on the Scorecard sheet (index 1), not the metadata sheet.
+  wb.views = [
+    { x: 0, y: 0, width: 20000, height: 16000, firstSheet: 0, activeTab: 1, visibility: "visible" },
+  ];
   sheet.columns.forEach((col) => {
     let max = 12;
     col.eachCell?.({ includeEmpty: false }, (cell) => {

@@ -115,6 +115,11 @@ export async function exportAssociations(
   cams.autoFilter = { from: "A1", to: "C1" };
   autosize(cams);
 
+  // Open on the Associations data sheet (index 1), not the metadata sheet.
+  wb.views = [
+    { x: 0, y: 0, width: 20000, height: 16000, firstSheet: 0, activeTab: 1, visibility: "visible" },
+  ];
+
   // ---- Download ----
   const buf = await wb.xlsx.writeBuffer();
   const blob = new Blob([buf], {
