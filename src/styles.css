@@ -283,6 +283,112 @@ body {
   color: #fff;
 }
 
+/* ---- Inline link-style button (table actions) ---- */
+
+.vt-linkbtn {
+  border: 1px solid #c5d0de;
+  background: #fff;
+  border-radius: 6px;
+  padding: 5px 12px;
+  font-size: 13px;
+  cursor: pointer;
+  color: #25477b;
+}
+
+.vt-linkbtn:hover:not(:disabled) {
+  background: #eaf0f8;
+}
+
+.vt-linkbtn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.vt-linkbtn--danger {
+  color: #b23b3b;
+  border-color: #e3c2c2;
+}
+
+.vt-linkbtn--danger:hover:not(:disabled) {
+  background: #fbeaea;
+}
+
+/* ---- Pairing tool ---- */
+
+.vt-pairpanel {
+  border: 1px solid #c5d0de;
+  border-radius: 8px;
+  background: #f7faff;
+  margin: 12px 0 18px;
+}
+
+.vt-pairpanel-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  text-align: left;
+  border: none;
+  background: transparent;
+  padding: 12px 14px;
+  font-size: 15px;
+  font-weight: 600;
+  color: #25477b;
+  cursor: pointer;
+}
+
+.vt-pairpanel-caret {
+  font-size: 12px;
+  color: #5a6b87;
+}
+
+.vt-pairpanel-body {
+  padding: 0 14px 14px;
+}
+
+.vt-pairgrid {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 14px;
+  margin: 8px 0 4px;
+}
+
+.vt-pairfield {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.vt-pairfield--narrow {
+  width: 140px;
+}
+
+.vt-pairfield--action {
+  justify-content: flex-end;
+}
+
+.vt-pairlabel {
+  font-size: 12px;
+  font-weight: 600;
+  color: #5a6b87;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.vt-pairfield .vt-vehsel-trigger {
+  min-width: 280px;
+}
+
+.vt-pairpreview {
+  margin-top: 10px;
+  padding: 10px 12px;
+  background: #eaf0f8;
+  border-radius: 6px;
+  font-size: 13px;
+  color: #1a1a1a;
+}
+
 /* ---- Device Association ---- */
 
 .vt-headerbtns {

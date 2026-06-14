@@ -1,10 +1,11 @@
 /**
- * Device Association — READ-ONLY report of camera↔vehicle pairing health.
+ * Device Association — camera↔vehicle pairing health + the Pairing tool.
  *
  * For every Geotab device within the user's scope: whether it matched a
  * VisionTrack vehicle (VIN-last-6) and whether that vehicle has a camera.
- * Plus the org's cameras not assigned to any vehicle. Pair/unpair actions
- * are a future phase (with their own security identifier + audit).
+ * Plus the org's cameras not assigned to any vehicle. The Pairing tool (top,
+ * manager/admin-gated) pairs a camera to a Geotab unit and names the VT
+ * vehicle after the Geotab description (not the UK license plate).
  */
 
 import { useCallback, useEffect, useState } from "react";
@@ -17,8 +18,9 @@ import type {
   GeotabSession,
 } from "./types";
 import { fetchScopedGroups, friendlyError, getSession } from "./api/geotab";
-import { fetchAssociations } from "./api/proxy";
+import { fetchAssociations, runUnpair } from "./api/proxy";
 import { GroupFilterPicker } from "./components/GroupFilterPicker";
+import { PairingPanel } from "./components/PairingPanel";
 import { exportAssociations } from "./utils/exportAssociations";
 
 interface AppProps {
@@ -49,6 +51,7 @@ export default function AssociationApp({ api }: AppProps) {
   const [data, setData] = useState<AssociationsResponse | null>(null);
   const [filter, setFilter] = useState<"all" | AssociationRow["status"]>("all");
   const [exporting, setExporting] = useState(false);
+  const [unpairingHw, setUnpairingHw] = useState<string | null>(null);
   // Bumped to force-remount the group picker (e.g. on "Show all vehicles").
   const [pickerKey, setPickerKey] = useState(0);
 
@@ -91,6 +94,29 @@ export default function AssociationApp({ api }: AppProps) {
     void load(selectedGroupIds);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session, selectedGroupIds]);
+
+  const handleUnpair = useCallback(
+    async (row: AssociationRow) => {
+      if (!session || !row.cameraHardwareId) return;
+      const ok = window.confirm(
+        `Unpair camera ${row.cameraHardwareId} from ${row.geotabDeviceName}?\n\n` +
+          "The camera returns to the unassigned pool for future pairing. " +
+          "No vehicle or name is deleted."
+      );
+      if (!ok) return;
+      setUnpairingHw(row.cameraHardwareId);
+      setError(null);
+      try {
+        await runUnpair({ session, cameraHardwareId: row.cameraHardwareId });
+        await load(selectedGroupIds);
+      } catch (e) {
+        setError(friendlyError(e));
+      } finally {
+        setUnpairingHw(null);
+      }
+    },
+    [session, load, selectedGroupIds]
+  );
 
   const handleExport = useCallback(async () => {
     if (!data || !session) return;
@@ -151,9 +177,16 @@ export default function AssociationApp({ api }: AppProps) {
       </div>
 
       <p className="vt-scope-note">
-        Read-only view of camera↔vehicle pairing health for vehicles within
-        your group scope. Matching is on the last 6 of the VIN.
+        Camera↔vehicle pairing health for vehicles within your group scope.
+        Matching is on the last 6 of the VIN.
       </p>
+
+      {session && (
+        <PairingPanel
+          session={session}
+          onPaired={() => void load(selectedGroupIds)}
+        />
+      )}
 
       <div className="vt-toolbar">
         <GroupFilterPicker
@@ -228,6 +261,7 @@ export default function AssociationApp({ api }: AppProps) {
                 <th>VT vehicle (VRN)</th>
                 <th>Camera</th>
                 <th>Status</th>
+                {data.canManage && <th>Actions</th>}
               </tr>
             </thead>
             <tbody>
@@ -243,11 +277,27 @@ export default function AssociationApp({ api }: AppProps) {
                       {STATUS_META[r.status].label}
                     </span>
                   </td>
+                  {data.canManage && (
+                    <td>
+                      {r.status === "paired" && r.cameraHardwareId ? (
+                        <button
+                          type="button"
+                          className="vt-linkbtn vt-linkbtn--danger"
+                          onClick={() => void handleUnpair(r)}
+                          disabled={unpairingHw === r.cameraHardwareId}
+                        >
+                          {unpairingHw === r.cameraHardwareId ? "Unpairing…" : "Unpair"}
+                        </button>
+                      ) : (
+                        "—"
+                      )}
+                    </td>
+                  )}
                 </tr>
               ))}
               {rows.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="vt-table-empty">
+                  <td colSpan={data.canManage ? 7 : 6} className="vt-table-empty">
                     Nothing matches this filter.
                   </td>
                 </tr>

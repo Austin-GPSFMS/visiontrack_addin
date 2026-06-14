@@ -30,6 +30,8 @@ import type {
   ScorecardConfig,
   ScorecardRunResponse,
   GeotabRuleOption,
+  PairOptionsResponse,
+  PairRunResponse,
 } from "../types";
 
 const PROXY_BASE_URL: string =
@@ -162,6 +164,30 @@ export function fetchAssociations(
   groupIds?: string[]
 ): Promise<AssociationsResponse> {
   return postJson<AssociationsResponse>("/api/associations", { session, groupIds });
+}
+
+/** Pairing tool: searchable Geotab units + VT cameras, and run a pairing. */
+export function fetchPairOptions(
+  session: GeotabSession
+): Promise<PairOptionsResponse> {
+  return postJson<PairOptionsResponse>("/api/pair/options", { session });
+}
+
+export function runPair(params: {
+  session: GeotabSession;
+  geotabDeviceId: string;
+  cameraHardwareId: string;
+  fuelType: string;
+}): Promise<PairRunResponse> {
+  return postJson<PairRunResponse>("/api/pair/run", params);
+}
+
+/** Detach a camera from its vehicle (back to the unassigned pool). */
+export function runUnpair(params: {
+  session: GeotabSession;
+  cameraHardwareId: string;
+}): Promise<{ ok: true; alreadyUnassigned: boolean }> {
+  return postJson("/api/pair/unpair", params);
 }
 
 /** Camera Rules: list / save / delete (all scoped to the caller's database). */

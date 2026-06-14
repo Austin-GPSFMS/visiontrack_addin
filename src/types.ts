@@ -152,6 +152,8 @@ export interface UnpairedCamera {
 export interface AssociationsResponse {
   rows: AssociationRow[];
   unpairedCameras: UnpairedCamera[];
+  /** Whether the caller may pair/unpair (admin or Manage Camera Rules). */
+  canManage?: boolean;
   summary: {
     scopedDevices: number;
     paired: number;
@@ -160,6 +162,37 @@ export interface AssociationsResponse {
     noVin: number;
     unpairedCameras: number;
   };
+}
+
+/** Pairing tool (proxy /api/pair/*). */
+export interface PairGeotabUnit {
+  geotabDeviceId: string;
+  name: string;
+  serial: string;
+  vin: string;
+  vinLast6: string;
+  groups: string;
+}
+
+export interface PairCamera {
+  hardwareId: string;
+  deviceId: string;
+  currentVrn?: string;
+  assigned: boolean;
+}
+
+export interface PairOptionsResponse {
+  units: PairGeotabUnit[];
+  cameras: PairCamera[];
+  canPair: boolean;
+}
+
+export interface PairRunResponse {
+  ok: true;
+  vehicleId: string;
+  vrn: string;
+  vin: string;
+  created: boolean;
 }
 
 /** Camera Rules (proxy /api/rules). */
