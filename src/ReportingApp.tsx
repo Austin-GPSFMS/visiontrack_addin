@@ -113,7 +113,7 @@ export default function ReportingApp({ api }: AppProps) {
   if (!api) {
     return (
       <div className="vt-empty">
-        <h1>Reporting</h1>
+        <h1>Reports</h1>
         <p>This page must be opened from within MyGeotab.</p>
       </div>
     );
@@ -141,7 +141,7 @@ export default function ReportingApp({ api }: AppProps) {
   return (
     <div>
       <div className="vt-header">
-        <h1>Reporting</h1>
+        <h1>Reports</h1>
       </div>
 
       <div className="vt-rt-toolbar">
