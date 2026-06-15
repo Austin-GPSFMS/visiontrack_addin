@@ -7,18 +7,30 @@
  * first cut covers the footage review + Confirm/Dismiss the user asked for.
  */
 
-import { useEffect, useMemo, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { Banner, Button } from "@geotab/zenith";
 import type {
+  CollisionDetailResponse,
   CollisionMediaClip,
   CollisionRow,
   CollisionStatus,
   GeotabSession,
   VtMedia,
 } from "../types";
-import { fetchCollisionMedia } from "../api/proxy";
+import { fetchCollisionDetail, fetchCollisionMedia } from "../api/proxy";
 import { friendlyError } from "../api/geotab";
 import { EVENT_TYPE_LABELS } from "../utils/eventTypes";
+import { SpeedChart } from "./SpeedChart";
+
+const TripMap = lazy(() => import("./TripMap"));
+
+const KPH_TO_MPH = 0.621371;
+const WINDOW_OPTIONS = [
+  { label: "±30 sec", sec: 30 },
+  { label: "±1 min", sec: 60 },
+  { label: "±2 min", sec: 120 },
+  { label: "±5 min", sec: 300 },
+];
 
 function fmt(iso: string): string {
   try {
@@ -51,6 +63,12 @@ export function CollisionDetailModal({
   const [clips, setClips] = useState<CollisionMediaClip[] | null>(null);
   const [loadErr, setLoadErr] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [windowSec, setWindowSec] = useState(30);
+  const [detail, setDetail] = useState<CollisionDetailResponse | null>(null);
+  const [detailErr, setDetailErr] = useState<string | null>(null);
+  const [detailLoading, setDetailLoading] = useState(false);
+
+  const collisionMs = useMemo(() => new Date(collision.time).getTime(), [collision.time]);
 
   useEffect(() => {
     if (!collision.cameraHardwareId) {
@@ -75,10 +93,44 @@ export function CollisionDetailModal({
     };
   }, [session, collision]);
 
+  // Telematics detail (GPS track + ignition) over the chosen window.
+  useEffect(() => {
+    let cancelled = false;
+    setDetailLoading(true);
+    setDetailErr(null);
+    fetchCollisionDetail({
+      session,
+      geotabDeviceId: collision.geotabDeviceId,
+      time: collision.time,
+      beforeSec: windowSec,
+      afterSec: windowSec,
+    })
+      .then((r) => !cancelled && setDetail(r))
+      .catch((e) => !cancelled && setDetailErr(friendlyError(e)))
+      .finally(() => !cancelled && setDetailLoading(false));
+    return () => {
+      cancelled = true;
+    };
+  }, [session, collision, windowSec]);
+
   const totalVideos = useMemo(
     () => (clips ?? []).reduce((n, c) => n + videoOf(c.media).length, 0),
     [clips]
   );
+
+  const fromMs = collisionMs - windowSec * 1000;
+  const toMs = collisionMs + windowSec * 1000;
+
+  // Ignition state at a given time = last known value at/before it.
+  const ignitionAt = (ms: number): string => {
+    const ig = detail?.ignition ?? [];
+    let state: string = "—";
+    for (const p of ig) {
+      if (new Date(p.t).getTime() <= ms) state = p.on ? "On" : "Off";
+      else break;
+    }
+    return state;
+  };
 
   return (
     <div className="vt-modal-backdrop" onClick={onClose}>
@@ -158,6 +210,89 @@ export function CollisionDetailModal({
             })}
           </>
         )}
+
+        {/* ---- Telematics: window, speed graph, map, raw log ---- */}
+        <div className="vt-collision-section">
+          <div className="vt-collision-section-head">
+            <h3>Telematics</h3>
+            <select
+              className="vt-input vt-input--narrow"
+              value={windowSec}
+              onChange={(e) => setWindowSec(Number(e.target.value))}
+            >
+              {WINDOW_OPTIONS.map((o) => (
+                <option key={o.sec} value={o.sec}>
+                  {o.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {detailErr && <Banner type="error">{detailErr}</Banner>}
+          {detailLoading && <div className="vt-empty">Loading telematics…</div>}
+
+          {detail && !detailLoading && (
+            <>
+              <SpeedChart
+                points={detail.track}
+                collisionMs={collisionMs}
+                fromMs={fromMs}
+                toMs={toMs}
+              />
+
+              <div className="vt-collision-map">
+                {detail.track.length > 0 ? (
+                  <Suspense fallback={<div className="vt-map-empty">Loading map…</div>}>
+                    <TripMap
+                      points={detail.track}
+                      clipStartMs={fromMs}
+                      playheadMs={collisionMs - fromMs}
+                    />
+                  </Suspense>
+                ) : (
+                  <div className="vt-map-empty">
+                    No GPS movement in this window (likely stationary).
+                  </div>
+                )}
+              </div>
+
+              <details className="vt-collision-log">
+                <summary>Raw log ({detail.track.length} points)</summary>
+                <div className="vt-collision-log-scroll">
+                  <table className="vt-table">
+                    <thead>
+                      <tr>
+                        <th>Time</th>
+                        <th>Speed (mph)</th>
+                        <th>Ignition</th>
+                        <th>Latitude</th>
+                        <th>Longitude</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {detail.track.map((p, i) => (
+                        <tr key={i}>
+                          <td>{new Date(p.t).toLocaleTimeString()}</td>
+                          <td>{((p.speedKph ?? 0) * KPH_TO_MPH).toFixed(1)}</td>
+                          <td>{ignitionAt(new Date(p.t).getTime())}</td>
+                          <td>{p.lat.toFixed(5)}</td>
+                          <td>{p.lon.toFixed(5)}</td>
+                        </tr>
+                      ))}
+                      {detail.track.length === 0 && (
+                        <tr>
+                          <td colSpan={5} className="vt-table-empty">
+                            No log points in this window.
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </details>
+            </>
+          )}
+        </div>
 
         {canManage && (
           <div className="vt-modal-actions">

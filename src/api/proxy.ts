@@ -36,6 +36,7 @@ import type {
   CollisionStatus,
   CollisionConfigResponse,
   CollisionMediaResponse,
+  CollisionDetailResponse,
 } from "../types";
 
 const PROXY_BASE_URL: string =
@@ -199,6 +200,17 @@ export function fetchCollisionMedia(params: {
   windowSec?: number;
 }): Promise<CollisionMediaResponse> {
   return postJson<CollisionMediaResponse>("/api/collision-media", params);
+}
+
+/** Telematics detail around a collision: GPS track (speed/path) + ignition. */
+export function fetchCollisionDetail(params: {
+  session: GeotabSession;
+  geotabDeviceId: string;
+  time: string;
+  beforeSec?: number;
+  afterSec?: number;
+}): Promise<CollisionDetailResponse> {
+  return postJson<CollisionDetailResponse>("/api/collision-detail", params);
 }
 
 /** Collision sources config: which Geotab rules feed the Collision Center. */

@@ -363,6 +363,60 @@ body {
   margin-bottom: 6px;
 }
 
+.vt-collision-section {
+  margin-top: 16px;
+  border-top: 1px solid #e2e8f1;
+  padding-top: 12px;
+}
+
+.vt-collision-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.vt-collision-section-head h3 {
+  margin: 0;
+  font-size: 15px;
+  color: #25477b;
+}
+
+.vt-speedchart {
+  width: 100%;
+  height: auto;
+  border: 1px solid #e2e8f1;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.vt-collision-map {
+  margin-top: 12px;
+}
+
+.vt-collision-map .vt-map {
+  height: 300px;
+  border-radius: 8px;
+}
+
+.vt-collision-log {
+  margin-top: 12px;
+}
+
+.vt-collision-log summary {
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  color: #25477b;
+  padding: 4px 0;
+}
+
+.vt-collision-log-scroll {
+  max-height: 280px;
+  overflow-y: auto;
+  margin-top: 6px;
+}
+
 /* ---- Inline link-style button (table actions) ---- */
 
 .vt-linkbtn {

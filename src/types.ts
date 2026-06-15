@@ -206,6 +206,21 @@ export interface CollisionMediaResponse {
   collisionTime: string;
 }
 
+export interface IgnitionPoint {
+  t: string;
+  on: boolean;
+}
+
+export interface CollisionDetailResponse {
+  track: TrackPoint[];
+  ignition: IgnitionPoint[];
+  beforeSec: number;
+  afterSec: number;
+  collisionTime: string;
+  fromDate: string;
+  toDate: string;
+}
+
 export interface CollisionRuleOption {
   id: string;
   name: string;
