@@ -32,6 +32,13 @@
       }
     },
     {
+      "url": "https://austin-gpsfms.github.io/visiontrack_addin/dist/collision.html",
+      "path": "GpsfmsVisionTrackMenu/",
+      "menuName": {
+        "en": "Collision Center"
+      }
+    },
+    {
       "url": "https://austin-gpsfms.github.io/visiontrack_addin/dist/watchdog.html",
       "path": "GpsfmsVisionTrackMenu/",
       "menuName": {

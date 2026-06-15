@@ -27,6 +27,7 @@ export default defineConfig({
         association: "association.html",
         notifications: "notifications.html",
         watchdog: "watchdog.html",
+        collision: "collision.html",
       },
       output: {
         entryFileNames: "assets/[name]-[hash].js",

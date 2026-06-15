@@ -32,6 +32,9 @@ import type {
   GeotabRuleOption,
   PairOptionsResponse,
   PairRunResponse,
+  CollisionsResponse,
+  CollisionStatus,
+  CollisionConfigResponse,
 } from "../types";
 
 const PROXY_BASE_URL: string =
@@ -164,6 +167,40 @@ export function fetchAssociations(
   groupIds?: string[]
 ): Promise<AssociationsResponse> {
   return postJson<AssociationsResponse>("/api/associations", { session, groupIds });
+}
+
+/** Collision Center: list scoped collisions (camera-equipped vehicles only). */
+export function fetchCollisions(params: {
+  session: GeotabSession;
+  groupIds?: string[];
+  fromDate?: string;
+  toDate?: string;
+}): Promise<CollisionsResponse> {
+  return postJson<CollisionsResponse>("/api/collisions", params);
+}
+
+/** Set triage status on a collision (new/confirmed/dismissed). Gated. */
+export function setCollisionTriage(params: {
+  session: GeotabSession;
+  collisionId: string;
+  status: CollisionStatus;
+  note?: string;
+}): Promise<{ ok: true }> {
+  return postJson("/api/collisions/triage", params);
+}
+
+/** Collision sources config: which Geotab rules feed the Collision Center. */
+export function fetchCollisionConfig(
+  session: GeotabSession
+): Promise<CollisionConfigResponse> {
+  return postJson<CollisionConfigResponse>("/api/collisions/config", { session });
+}
+
+export function saveCollisionConfig(
+  session: GeotabSession,
+  ruleIds: string[]
+): Promise<{ ok: true }> {
+  return postJson("/api/collisions/config/save", { session, ruleIds });
 }
 
 /** Pairing tool: searchable Geotab units + VT cameras, and run a pairing. */

@@ -283,6 +283,37 @@ body {
   color: #fff;
 }
 
+/* ---- Collision Center ---- */
+
+.vt-triage-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.vt-rulelist {
+  max-height: 46vh;
+  overflow-y: auto;
+  border: 1px solid #e2e8f1;
+  border-radius: 8px;
+  padding: 6px 10px;
+  margin: 8px 0;
+}
+
+.vt-rulelist .vt-checkrow {
+  padding: 5px 0;
+}
+
+.vt-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.vt-row-muted {
+  opacity: 0.55;
+}
+
 /* ---- Inline link-style button (table actions) ---- */
 
 .vt-linkbtn {

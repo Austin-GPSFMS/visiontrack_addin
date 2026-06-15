@@ -164,6 +164,49 @@ export interface AssociationsResponse {
   };
 }
 
+/** Collision Center (proxy /api/collisions). */
+export type CollisionStatus = "new" | "confirmed" | "dismissed";
+
+export interface CollisionRow {
+  id: string;
+  source: "geotab";
+  ruleName: string;
+  severity: "possible" | "major" | "other";
+  time: string;
+  geotabDeviceId: string;
+  vehicleName: string;
+  geotabGroups: string;
+  driverName?: string;
+  vtVehicleId?: string;
+  cameraHardwareId?: string;
+  status: CollisionStatus;
+  note?: string;
+  updatedBy?: string;
+  updatedAt?: string;
+}
+
+export interface CollisionsResponse {
+  rows: CollisionRow[];
+  canManage: boolean;
+  rulesUsed: string[];
+  fromDate: string;
+  toDate: string;
+}
+
+export interface CollisionRuleOption {
+  id: string;
+  name: string;
+  severity: "possible" | "major" | "other" | null;
+  isCollisionNamed: boolean;
+}
+
+export interface CollisionConfigResponse {
+  availableRules: CollisionRuleOption[];
+  selectedRuleIds: string[];
+  configured: boolean;
+  canManage: boolean;
+}
+
 /** Pairing tool (proxy /api/pair/*). */
 export interface PairGeotabUnit {
   geotabDeviceId: string;
