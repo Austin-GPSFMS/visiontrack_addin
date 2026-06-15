@@ -193,6 +193,19 @@ export interface CollisionsResponse {
   toDate: string;
 }
 
+export interface CollisionMediaClip {
+  eventId: string;
+  triggerTime: string;
+  eventTypes: number[];
+  media: VtMedia[];
+}
+
+export interface CollisionMediaResponse {
+  clips: CollisionMediaClip[];
+  windowSec: number;
+  collisionTime: string;
+}
+
 export interface CollisionRuleOption {
   id: string;
   name: string;

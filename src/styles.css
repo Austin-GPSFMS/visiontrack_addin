@@ -314,6 +314,36 @@ body {
   opacity: 0.55;
 }
 
+.vt-row-click {
+  cursor: pointer;
+}
+
+.vt-row-click:hover {
+  background: #f3f7fd;
+}
+
+.vt-collision-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 22px;
+  padding: 10px 12px;
+  background: #f3f7fd;
+  border-radius: 8px;
+  font-size: 13px;
+  margin: 8px 0 12px;
+}
+
+.vt-collision-clip {
+  margin: 14px 0;
+}
+
+.vt-collision-clip-head {
+  font-size: 13px;
+  font-weight: 600;
+  color: #25477b;
+  margin-bottom: 6px;
+}
+
 /* ---- Inline link-style button (table actions) ---- */
 
 .vt-linkbtn {

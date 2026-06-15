@@ -35,6 +35,7 @@ import type {
   CollisionsResponse,
   CollisionStatus,
   CollisionConfigResponse,
+  CollisionMediaResponse,
 } from "../types";
 
 const PROXY_BASE_URL: string =
@@ -187,6 +188,17 @@ export function setCollisionTriage(params: {
   note?: string;
 }): Promise<{ ok: true }> {
   return postJson("/api/collisions/triage", params);
+}
+
+/** Footage near a collision (VT events on the camera within ±windowSec). */
+export function fetchCollisionMedia(params: {
+  session: GeotabSession;
+  hardwareId: string;
+  vehicleId?: string;
+  time: string;
+  windowSec?: number;
+}): Promise<CollisionMediaResponse> {
+  return postJson<CollisionMediaResponse>("/api/collision-media", params);
 }
 
 /** Collision sources config: which Geotab rules feed the Collision Center. */

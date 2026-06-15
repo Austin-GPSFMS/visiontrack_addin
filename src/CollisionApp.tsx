@@ -22,6 +22,7 @@ import { fetchScopedGroups, friendlyError, getSession } from "./api/geotab";
 import { fetchCollisions, setCollisionTriage } from "./api/proxy";
 import { GroupFilterPicker } from "./components/GroupFilterPicker";
 import { CollisionSourcesModal } from "./components/CollisionSourcesModal";
+import { CollisionDetailModal } from "./components/CollisionDetailModal";
 
 interface AppProps {
   api: GeotabApi | null;
@@ -61,6 +62,7 @@ export default function CollisionApp({ api }: AppProps) {
   const [data, setData] = useState<CollisionsResponse | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [sourcesOpen, setSourcesOpen] = useState(false);
+  const [detail, setDetail] = useState<CollisionRow | null>(null);
 
   useEffect(() => {
     if (!api) return;
@@ -192,6 +194,16 @@ export default function CollisionApp({ api }: AppProps) {
         />
       )}
 
+      {detail && session && (
+        <CollisionDetailModal
+          session={session}
+          collision={detail}
+          canManage={canManage}
+          onClose={() => setDetail(null)}
+          onTriaged={(status) => void triage(detail, status)}
+        />
+      )}
+
       <p className="vt-scope-note">
         Detected collisions for camera-equipped vehicles in your scope (Geotab
         Possible &amp; Major Collision). Review footage and triage false
@@ -276,14 +288,20 @@ export default function CollisionApp({ api }: AppProps) {
             </thead>
             <tbody>
               {visibleRows.map((r) => (
-                <tr key={r.id} className={r.status === "dismissed" ? "vt-row-muted" : ""}>
+                <tr
+                  key={r.id}
+                  className={`vt-row-click${r.status === "dismissed" ? " vt-row-muted" : ""}`}
+                  onClick={() => setDetail(r)}
+                >
                   <td>
                     <span className={SEVERITY_META[r.severity].cls}>
                       {SEVERITY_META[r.severity].label}
                     </span>
                   </td>
                   <td>{fmtTime(r.time)}</td>
-                  <td>{r.vehicleName}</td>
+                  <td>
+                    <span className="vt-link">{r.vehicleName}</span>
+                  </td>
                   <td>{r.driverName ?? "—"}</td>
                   <td>{r.geotabGroups}</td>
                   <td>{r.cameraHardwareId ?? "—"}</td>
@@ -295,7 +313,7 @@ export default function CollisionApp({ api }: AppProps) {
                       : "New"}
                   </td>
                   {canManage && (
-                    <td>
+                    <td onClick={(e) => e.stopPropagation()}>
                       <div className="vt-triage-actions">
                         {r.status !== "confirmed" && (
                           <button
