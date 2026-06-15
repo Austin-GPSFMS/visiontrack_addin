@@ -290,6 +290,25 @@ body {
   gap: 8px;
 }
 
+.vt-btn-review {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+  border: none;
+  background: #25477b;
+  color: #fff;
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.vt-btn-review:hover {
+  background: #1c3860;
+}
+
 .vt-rulelist {
   max-height: 46vh;
   overflow-y: auto;

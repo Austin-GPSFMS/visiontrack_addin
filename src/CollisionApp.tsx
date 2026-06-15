@@ -283,6 +283,7 @@ export default function CollisionApp({ api }: AppProps) {
                 <th>Group(s)</th>
                 <th>Camera</th>
                 <th>Status</th>
+                <th>Footage</th>
                 {canManage && <th>Triage</th>}
               </tr>
             </thead>
@@ -311,6 +312,15 @@ export default function CollisionApp({ api }: AppProps) {
                       : r.status === "dismissed"
                       ? "Dismissed"
                       : "New"}
+                  </td>
+                  <td onClick={(e) => e.stopPropagation()}>
+                    <button
+                      type="button"
+                      className="vt-btn-review"
+                      onClick={() => setDetail(r)}
+                    >
+                      ▶ Review footage
+                    </button>
                   </td>
                   {canManage && (
                     <td onClick={(e) => e.stopPropagation()}>
@@ -351,7 +361,7 @@ export default function CollisionApp({ api }: AppProps) {
               ))}
               {visibleRows.length === 0 && (
                 <tr>
-                  <td colSpan={canManage ? 8 : 7} className="vt-table-empty">
+                  <td colSpan={canManage ? 9 : 8} className="vt-table-empty">
                     No collisions in this view.
                   </td>
                 </tr>
