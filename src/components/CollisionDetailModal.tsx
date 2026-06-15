@@ -17,7 +17,11 @@ import type {
   GeotabSession,
   VtMedia,
 } from "../types";
-import { fetchCollisionDetail, fetchCollisionMedia } from "../api/proxy";
+import {
+  downloadCollisionData,
+  fetchCollisionDetail,
+  fetchCollisionMedia,
+} from "../api/proxy";
 import { friendlyError } from "../api/geotab";
 import { EVENT_TYPE_LABELS } from "../utils/eventTypes";
 import { SpeedChart } from "./SpeedChart";
@@ -68,7 +72,44 @@ export function CollisionDetailModal({
   const [detailErr, setDetailErr] = useState<string | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
 
+  const [downloading, setDownloading] = useState(false);
+  const [downloadErr, setDownloadErr] = useState<string | null>(null);
+
   const collisionMs = useMemo(() => new Date(collision.time).getTime(), [collision.time]);
+
+  const handleDownload = async () => {
+    setDownloading(true);
+    setDownloadErr(null);
+    try {
+      const blob = await downloadCollisionData({
+        session,
+        geotabDeviceId: collision.geotabDeviceId,
+        time: collision.time,
+        hardwareId: collision.cameraHardwareId,
+        vehicleId: collision.vtVehicleId,
+        beforeSec: windowSec,
+        afterSec: windowSec,
+        vehicleName: collision.vehicleName,
+        ruleName: collision.ruleName,
+        severity: collision.severity,
+        groups: collision.geotabGroups,
+        driverName: collision.driverName,
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      const stamp = new Date(collision.time).toISOString().slice(0, 10);
+      a.href = url;
+      a.download = `collision-${collision.vehicleName}-${stamp}.zip`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      setDownloadErr(friendlyError(e));
+    } finally {
+      setDownloading(false);
+    }
+  };
 
   useEffect(() => {
     if (!collision.cameraHardwareId) {
@@ -139,10 +180,21 @@ export function CollisionDetailModal({
           <h2>
             Collision — {collision.vehicleName}
           </h2>
-          <button className="vt-link" onClick={onClose}>
-            ✕ Close
-          </button>
+          <div className="vt-headerbtns">
+            <Button type="primary" onClick={handleDownload} disabled={downloading}>
+              {downloading ? "Preparing…" : "⬇ Download all accident data"}
+            </Button>
+            <button className="vt-link" onClick={onClose}>
+              ✕ Close
+            </button>
+          </div>
         </div>
+
+        {downloadErr && (
+          <Banner type="error" onClose={() => setDownloadErr(null)}>
+            {downloadErr}
+          </Banner>
+        )}
 
         <div className="vt-collision-meta">
           <span><b>Severity:</b> {collision.severity}</span>

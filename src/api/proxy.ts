@@ -213,6 +213,39 @@ export function fetchCollisionDetail(params: {
   return postJson<CollisionDetailResponse>("/api/collision-detail", params);
 }
 
+/** Download the accident bundle (PDF + raw-log Excel + footage) as a ZIP. */
+export async function downloadCollisionData(params: {
+  session: GeotabSession;
+  geotabDeviceId: string;
+  time: string;
+  hardwareId?: string;
+  vehicleId?: string;
+  beforeSec?: number;
+  afterSec?: number;
+  vehicleName?: string;
+  ruleName?: string;
+  severity?: string;
+  groups?: string;
+  driverName?: string;
+}): Promise<Blob> {
+  const resp = await fetch(`${PROXY_BASE_URL}/api/collision-download`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(params),
+  });
+  if (!resp.ok) {
+    let detail = "";
+    try {
+      const data = (await resp.json()) as { error?: string };
+      detail = data.error ? `: ${data.error}` : "";
+    } catch {
+      /* ignore */
+    }
+    throw new Error(`Download failed (${resp.status})${detail}`);
+  }
+  return resp.blob();
+}
+
 /** Collision sources config: which Geotab rules feed the Collision Center. */
 export function fetchCollisionConfig(
   session: GeotabSession
