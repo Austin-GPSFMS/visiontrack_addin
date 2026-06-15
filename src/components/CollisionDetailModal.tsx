@@ -21,7 +21,11 @@ import {
   downloadCollisionData,
   fetchCollisionDetail,
   fetchCollisionMedia,
+  fetchDeviceChannels,
+  fetchVideoRequests,
+  requestVideo,
 } from "../api/proxy";
+import type { VideoRequest } from "../types";
 import { friendlyError } from "../api/geotab";
 import { EVENT_TYPE_LABELS } from "../utils/eventTypes";
 import { SpeedChart } from "./SpeedChart";
@@ -75,7 +79,42 @@ export function CollisionDetailModal({
   const [downloading, setDownloading] = useState(false);
   const [downloadErr, setDownloadErr] = useState<string | null>(null);
 
+  const [reqState, setReqState] = useState<VideoRequest | null>(null);
+  const [requesting, setRequesting] = useState(false);
+  const [reqErr, setReqErr] = useState<string | null>(null);
+
   const collisionMs = useMemo(() => new Date(collision.time).getTime(), [collision.time]);
+
+  const handleRequestFootage = async () => {
+    if (!collision.cameraHardwareId) return;
+    setRequesting(true);
+    setReqErr(null);
+    try {
+      const { channels } = await fetchDeviceChannels({
+        session,
+        hardwareId: collision.cameraHardwareId,
+        vehicleId: collision.vtVehicleId,
+      });
+      const chans = channels.map((c) => c.channel);
+      if (chans.length === 0) throw new Error("Couldn't determine the camera's channels to request.");
+      // Centered on the collision, capped at the 180s clip limit.
+      const duration = Math.min(windowSec * 2, 180);
+      const startDateTime = new Date(collisionMs - (duration / 2) * 1000).toISOString();
+      const { request } = await requestVideo({
+        session,
+        hardwareId: collision.cameraHardwareId,
+        vehicleId: collision.vtVehicleId,
+        startDateTime,
+        duration,
+        channels: chans,
+      });
+      setReqState(request);
+    } catch (e) {
+      setReqErr(friendlyError(e));
+    } finally {
+      setRequesting(false);
+    }
+  };
 
   const handleDownload = async () => {
     setDownloading(true);
@@ -154,10 +193,47 @@ export function CollisionDetailModal({
     };
   }, [session, collision, windowSec]);
 
+  // Poll the footage request until the camera finishes uploading it.
+  useEffect(() => {
+    if (!reqState) return;
+    const isTerminal = (st?: number) => st === 3 || st === 4 || st === 5 || st === 7;
+    if (isTerminal(reqState.state)) return;
+    const id = reqState.id;
+    const timer = setInterval(async () => {
+      try {
+        const { requests } = await fetchVideoRequests(session);
+        const found = requests.find((r) => r.id === id);
+        if (found) {
+          setReqState(found);
+          if (isTerminal(found.state)) clearInterval(timer);
+        }
+      } catch {
+        /* ignore a transient poll error */
+      }
+    }, 12000);
+    return () => clearInterval(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [reqState?.id]);
+
   const totalVideos = useMemo(
     () => (clips ?? []).reduce((n, c) => n + videoOf(c.media).length, 0),
     [clips]
   );
+
+  const reqStatusText = (st?: number): string => {
+    switch (st) {
+      case 3:
+        return "Footage ready";
+      case 4:
+        return "Request cancelled";
+      case 5:
+        return "Request failed — the camera couldn't provide this clip";
+      case 7:
+        return "Footage unavailable for this window";
+      default:
+        return "Requested — the camera is uploading the clip (this can take a few minutes)…";
+    }
+  };
 
   const fromMs = collisionMs - windowSec * 1000;
   const toMs = collisionMs + windowSec * 1000;
@@ -211,8 +287,9 @@ export function CollisionDetailModal({
         {!loading && clips && clips.length === 0 && !loadErr && (
           <Banner type="info">
             No camera footage found within ±2 minutes of this collision. The
-            camera may not have captured an event at that exact moment — a manual
-            footage request for this window is coming in the next update.
+            camera may not have captured an event at that exact moment — use
+            "Request footage for this window" below to pull the clip directly
+            from the camera.
           </Banner>
         )}
 
@@ -261,6 +338,54 @@ export function CollisionDetailModal({
               );
             })}
           </>
+        )}
+
+        {/* ---- Request footage (camera uploads the clip on demand) ---- */}
+        {collision.cameraHardwareId && (
+          <div className="vt-collision-request">
+            <Button
+              type="secondary"
+              onClick={handleRequestFootage}
+              disabled={
+                requesting ||
+                (!!reqState && ![3, 4, 5, 7].includes(reqState.state ?? -1))
+              }
+            >
+              {requesting
+                ? "Requesting…"
+                : reqState
+                ? "Request again"
+                : "Request footage for this window"}
+            </Button>
+            {reqErr && (
+              <Banner type="error" onClose={() => setReqErr(null)}>
+                {reqErr}
+              </Banner>
+            )}
+            {reqState && (
+              <span className="vt-scope-note" style={{ marginLeft: 10 }}>
+                {reqStatusText(reqState.state)}
+              </span>
+            )}
+            {reqState?.media && videoOf(reqState.media).length > 0 && (
+              <div
+                className={`vt-modal-videos${
+                  videoOf(reqState.media).length === 1
+                    ? " vt-modal-videos--1"
+                    : " vt-modal-videos--2"
+                }`}
+              >
+                {videoOf(reqState.media).map((m) => (
+                  <div key={m.id} className="vt-modal-videocell">
+                    {m.channelLabel && (
+                      <div className="vt-modal-chanlabel">{m.channelLabel}</div>
+                    )}
+                    <video src={m.uri} controls preload="metadata" className="vt-modal-video" />
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         )}
 
         {/* ---- Telematics: window, speed graph, map, raw log ---- */}

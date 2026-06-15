@@ -363,6 +363,19 @@ body {
   margin-bottom: 6px;
 }
 
+.vt-collision-request {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 12px 0;
+}
+
+.vt-collision-request .vt-modal-videos {
+  width: 100%;
+  margin-top: 8px;
+}
+
 .vt-collision-section {
   margin-top: 16px;
   border-top: 1px solid #e2e8f1;
