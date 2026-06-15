@@ -8,7 +8,7 @@
  */
 
 import { useCallback, useEffect, useState } from "react";
-import { Banner } from "@geotab/zenith";
+import { Banner, Button } from "@geotab/zenith";
 import type {
   CameraRule,
   DistributionList,
@@ -29,6 +29,9 @@ import { EVENT_TYPE_LABELS } from "./utils/eventTypes";
 
 interface AppProps {
   api: GeotabApi | null;
+  /** Bumped by the entry each time MyGeotab re-focuses the page, so we can
+   *  re-fetch and never show a stale snapshot from when it was first opened. */
+  focusNonce?: number;
 }
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -179,7 +182,7 @@ interface RowDraft {
   cooldownMinutes: number;
 }
 
-export default function CameraRulesApp({ api }: AppProps) {
+export default function CameraRulesApp({ api, focusNonce }: AppProps) {
   const [session, setSession] = useState<GeotabSession | null>(null);
   const [bootError, setBootError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -245,6 +248,13 @@ export default function CameraRulesApp({ api }: AppProps) {
     if (session) void load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session]);
+
+  // Re-fetch when the page regains focus (returning to it in MyGeotab), so two
+  // people on the same database never see different, stale snapshots.
+  useEffect(() => {
+    if (session && focusNonce) void load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [focusNonce]);
 
   const listName = useCallback(
     (id: string) => distLists.find((l) => l.id === id)?.name ?? "list",
@@ -582,6 +592,11 @@ export default function CameraRulesApp({ api }: AppProps) {
     <div>
       <div className="vt-header">
         <h1>Camera Rules</h1>
+        <div className="vt-headerbtns">
+          <Button type="secondary" onClick={() => void load()} disabled={!session}>
+            Refresh
+          </Button>
+        </div>
       </div>
 
       <p className="vt-scope-note">

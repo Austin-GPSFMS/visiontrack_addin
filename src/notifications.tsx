@@ -27,6 +27,7 @@ declare global {
 
 let root: Root | null = null;
 let currentApi: GeotabApi | null = null;
+let focusNonce = 0;
 
 function mount() {
   const container = document.getElementById("root");
@@ -37,7 +38,7 @@ function mount() {
   if (!root) root = createRoot(container);
   root.render(
     <StrictMode>
-      <CameraRulesApp api={currentApi} />
+      <CameraRulesApp api={currentApi} focusNonce={focusNonce} />
     </StrictMode>
   );
 }
@@ -57,6 +58,7 @@ window.geotab.addin.visionTrackCameraRules = function () {
     },
     focus(api) {
       currentApi = api;
+      focusNonce += 1;
       mount();
     },
     blur() {
