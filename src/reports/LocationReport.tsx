@@ -5,11 +5,16 @@
  * linking to Google Maps, plus the drift between the two fixes.
  */
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Banner, Button } from "@geotab/zenith";
 import type { GeotabSession, LatLon, PositionRow } from "../types";
 import { friendlyError } from "../api/geotab";
 import { fetchPositions, reverseGeocode } from "../api/proxy";
+import { exportLocations } from "../utils/exportLocations";
+
+function keyOf(p: LatLon): string {
+  return `${p.lat.toFixed(5)},${p.lon.toFixed(5)}`;
+}
 
 function fmtAgo(iso: string | null): string {
   if (!iso) return "no fix";
@@ -26,18 +31,30 @@ function driftLabel(m: number): string {
 }
 
 /** One coordinate cell: map link + lazily reverse-geocoded address + age. */
-function GeoCell({ session, pos }: { session: GeotabSession; pos: LatLon | null }) {
+function GeoCell({
+  session,
+  pos,
+  onResolved,
+}: {
+  session: GeotabSession;
+  pos: LatLon | null;
+  onResolved?: (key: string, address: string) => void;
+}) {
   const [addr, setAddr] = useState<string | null>(null);
   useEffect(() => {
     if (!pos) return;
     let cancelled = false;
     reverseGeocode(session, pos.lat, pos.lon)
-      .then((r) => !cancelled && setAddr(r.address || null))
+      .then((r) => {
+        if (cancelled) return;
+        setAddr(r.address || null);
+        if (r.address) onResolved?.(keyOf(pos), r.address);
+      })
       .catch(() => undefined);
     return () => {
       cancelled = true;
     };
-  }, [session, pos]);
+  }, [session, pos, onResolved]);
 
   if (!pos) return <span className="vt-muted">—</span>;
   const coords = `${pos.lat.toFixed(5)}, ${pos.lon.toFixed(5)}`;
@@ -60,6 +77,12 @@ export function LocationReport({ session }: { session: GeotabSession }) {
   const [error, setError] = useState<string | null>(null);
   const [rows, setRows] = useState<PositionRow[]>([]);
   const [generatedAt, setGeneratedAt] = useState<string | null>(null);
+  const [exporting, setExporting] = useState(false);
+  // Addresses resolved by GeoCells, keyed by "lat,lon" — reused for the export.
+  const addrMap = useRef<Map<string, string>>(new Map());
+  const rememberAddress = useCallback((key: string, address: string) => {
+    addrMap.current.set(key, address);
+  }, []);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -80,6 +103,20 @@ export function LocationReport({ session }: { session: GeotabSession }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const handleExport = useCallback(async () => {
+    setExporting(true);
+    try {
+      await exportLocations(rows, addrMap.current, {
+        database: session.database,
+        generatedAt: generatedAt ?? new Date().toISOString(),
+      });
+    } catch (e) {
+      setError(friendlyError(e));
+    } finally {
+      setExporting(false);
+    }
+  }, [rows, session.database, generatedAt]);
+
   return (
     <div>
       <p className="vt-scope-note">
@@ -98,6 +135,13 @@ export function LocationReport({ session }: { session: GeotabSession }) {
 
       <div className="vt-toolbar">
         <div className="vt-spacer" />
+        <Button
+          type="secondary"
+          onClick={handleExport}
+          disabled={exporting || rows.length === 0}
+        >
+          {exporting ? "Exporting…" : "Export to Excel"}
+        </Button>
         <Button type="secondary" onClick={() => void load()} disabled={loading}>
           {loading ? "Loading…" : "Refresh"}
         </Button>
@@ -111,6 +155,8 @@ export function LocationReport({ session }: { session: GeotabSession }) {
             <tr>
               <th>Vehicle</th>
               <th>Group(s)</th>
+              <th>Geotab serial</th>
+              <th>Camera serial</th>
               <th>GPS (GO device)</th>
               <th>Camera (VisionTrack)</th>
               <th>Drift</th>
@@ -124,11 +170,13 @@ export function LocationReport({ session }: { session: GeotabSession }) {
                   {r.vrn && r.vrn !== r.geotabDeviceName ? ` (${r.vrn})` : ""}
                 </td>
                 <td>{r.geotabGroups}</td>
+                <td>{r.geotabSerial || "—"}</td>
+                <td>{r.cameraSerial || "—"}</td>
                 <td>
-                  <GeoCell session={session} pos={r.gps} />
+                  <GeoCell session={session} pos={r.gps} onResolved={rememberAddress} />
                 </td>
                 <td>
-                  <GeoCell session={session} pos={r.camera} />
+                  <GeoCell session={session} pos={r.camera} onResolved={rememberAddress} />
                 </td>
                 <td>
                   {r.driftMeters == null ? (
@@ -149,7 +197,7 @@ export function LocationReport({ session }: { session: GeotabSession }) {
             ))}
             {rows.length === 0 && (
               <tr>
-                <td colSpan={5} className="vt-table-empty">
+                <td colSpan={7} className="vt-table-empty">
                   No camera-equipped vehicles in scope.
                 </td>
               </tr>

@@ -356,6 +356,8 @@ export interface PositionRow {
   geotabDeviceName: string;
   vrn?: string;
   geotabGroups: string;
+  geotabSerial: string;
+  cameraSerial: string;
   gps: LatLon | null;
   camera: LatLon | null;
   driftMeters: number | null;
