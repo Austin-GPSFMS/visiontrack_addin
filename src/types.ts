@@ -345,6 +345,27 @@ export interface WatchdogResponse {
   generatedAt: string;
 }
 
+// ---- GPS vs Camera location report ----
+export interface LatLon {
+  lat: number;
+  lon: number;
+  t: string | null;
+}
+
+export interface PositionRow {
+  geotabDeviceName: string;
+  vrn?: string;
+  geotabGroups: string;
+  gps: LatLon | null;
+  camera: LatLon | null;
+  driftMeters: number | null;
+}
+
+export interface PositionsResponse {
+  rows: PositionRow[];
+  generatedAt: string;
+}
+
 // ---- Safety Scorecard ----
 export type ScoreFactorKind = "geotab" | "camera";
 export type ScoreFormula = "uniform" | "speeding" | "seatbelt";

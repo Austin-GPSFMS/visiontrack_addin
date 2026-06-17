@@ -10,6 +10,7 @@ import type { GeotabApi, GeotabSession } from "./types";
 import { friendlyError, getSession } from "./api/geotab";
 import { WatchdogReport } from "./reports/WatchdogReport";
 import { ScorecardReport } from "./reports/ScorecardReport";
+import { LocationReport } from "./reports/LocationReport";
 
 interface AppProps {
   api: GeotabApi | null;
@@ -39,6 +40,14 @@ const REPORTS: ReportDef[] = [
       "Weighted, distance-normalized safety score per vehicle or driver — combines Geotab exceptions with VisionTrack camera events. Configurable factors and weights.",
     tags: ["Safety", "Productivity"],
     render: (s) => <ScorecardReport session={s} />,
+  },
+  {
+    id: "locations",
+    title: "GPS vs Camera Location",
+    description:
+      "Each camera vehicle's GO-device GPS position next to the camera's own last reported position, with addresses and the drift between them — catches bad camera GPS, wrong pairings, and stale fixes.",
+    tags: ["Device & Installation", "Location"],
+    render: (s) => <LocationReport session={s} />,
   },
 ];
 

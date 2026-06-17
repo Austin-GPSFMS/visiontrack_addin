@@ -27,6 +27,7 @@ import type {
   DeviceChannel,
   VideoRequest,
   WatchdogResponse,
+  PositionsResponse,
   ScorecardConfig,
   ScorecardRunResponse,
   GeotabRuleOption,
@@ -100,6 +101,23 @@ export function fetchWatchdog(
   groupIds?: string[]
 ): Promise<WatchdogResponse> {
   return postJson<WatchdogResponse>("/api/watchdog", { session, groupIds });
+}
+
+/** GPS-vs-camera last positions per scoped camera vehicle. */
+export function fetchPositions(
+  session: GeotabSession,
+  groupIds?: string[]
+): Promise<PositionsResponse> {
+  return postJson<PositionsResponse>("/api/positions", { session, groupIds });
+}
+
+/** Reverse-geocode a coordinate to a street address (server-cached). */
+export function reverseGeocode(
+  session: GeotabSession,
+  lat: number,
+  lon: number
+): Promise<{ address: string }> {
+  return postJson<{ address: string }>("/api/geocode", { session, lat, lon });
 }
 
 /** Scorecard: config + manage rights, save config, list Geotab rules, run. */
