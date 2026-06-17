@@ -160,6 +160,7 @@ export function LocationReport({ session }: { session: GeotabSession }) {
               <th>GPS (GO device)</th>
               <th>Camera (VisionTrack)</th>
               <th>Drift</th>
+              <th>Zone (GPS)</th>
             </tr>
           </thead>
           <tbody>
@@ -193,11 +194,18 @@ export function LocationReport({ session }: { session: GeotabSession }) {
                     </span>
                   )}
                 </td>
+                <td>
+                  {r.gpsZone ? (
+                    r.gpsZone
+                  ) : (
+                    <span className="vt-muted">—</span>
+                  )}
+                </td>
               </tr>
             ))}
             {rows.length === 0 && (
               <tr>
-                <td colSpan={7} className="vt-table-empty">
+                <td colSpan={8} className="vt-table-empty">
                   No camera-equipped vehicles in scope.
                 </td>
               </tr>

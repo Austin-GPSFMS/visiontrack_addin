@@ -49,10 +49,12 @@ export async function exportLocations(
     { header: "GPS Lat", key: "glat" },
     { header: "GPS Lon", key: "glon" },
     { header: "GPS Time", key: "gtime" },
+    { header: "GPS Zone", key: "gzone" },
     { header: "Camera Address", key: "caddr" },
     { header: "Camera Lat", key: "clat" },
     { header: "Camera Lon", key: "clon" },
     { header: "Camera Time", key: "ctime" },
+    { header: "Camera Zone", key: "czone" },
     { header: "Drift (ft)", key: "drift" },
   ];
 
@@ -67,10 +69,12 @@ export async function exportLocations(
       glat: r.gps?.lat ?? "",
       glon: r.gps?.lon ?? "",
       gtime: fmt(r.gps?.t ?? null),
+      gzone: r.gpsZone,
       caddr: r.camera ? addresses.get(keyOf(r.camera)) ?? "" : "",
       clat: r.camera?.lat ?? "",
       clon: r.camera?.lon ?? "",
       ctime: fmt(r.camera?.t ?? null),
+      czone: r.cameraZone,
       drift: r.driftMeters == null ? "" : Math.round(r.driftMeters * 3.28084),
     });
   }
@@ -80,7 +84,7 @@ export async function exportLocations(
     c.font = HEADER_FONT;
   });
   sheet.views = [{ state: "frozen", ySplit: 1 }];
-  sheet.autoFilter = { from: "A1", to: "N1" };
+  sheet.autoFilter = { from: "A1", to: "P1" };
   // Open on the data sheet (index 1), not the metadata sheet.
   wb.views = [
     { x: 0, y: 0, width: 20000, height: 16000, firstSheet: 0, activeTab: 1, visibility: "visible" },

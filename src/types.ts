@@ -361,6 +361,8 @@ export interface PositionRow {
   gps: LatLon | null;
   camera: LatLon | null;
   driftMeters: number | null;
+  gpsZone: string;
+  cameraZone: string;
 }
 
 export interface PositionsResponse {
