@@ -102,7 +102,13 @@ export function RequestVideoModal({
 
         <div className="vt-field">
           <span>Vehicle</span>
-          <VehicleSelect vehicles={vehicles} value={hardwareId} onChange={setHardwareId} />
+          <VehicleSelect
+            vehicles={vehicles}
+            value={hardwareId}
+            onChange={setHardwareId}
+            allowAll={false}
+            placeholder="Select a vehicle…"
+          />
         </div>
 
         <label className="vt-field">

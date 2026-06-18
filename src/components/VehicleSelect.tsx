@@ -16,10 +16,16 @@ export function VehicleSelect({
   vehicles,
   value,
   onChange,
+  allowAll = true,
+  placeholder = "Vehicle: All",
 }: {
   vehicles: ScopedVehicle[];
   value: string;
   onChange: (hardwareId: string) => void;
+  /** Show the "All vehicles" option (false for required single-select). */
+  allowAll?: boolean;
+  /** Trigger text when nothing is selected. */
+  placeholder?: string;
 }) {
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState("");
@@ -37,7 +43,7 @@ export function VehicleSelect({
   }, [open]);
 
   const selected = vehicles.find((v) => v.hardwareId === value);
-  const triggerLabel = selected ? labelFor(selected) : "Vehicle: All";
+  const triggerLabel = selected ? labelFor(selected) : placeholder;
 
   const query = q.trim().toLowerCase();
   const matches = (query
@@ -76,13 +82,15 @@ export function VehicleSelect({
             placeholder="Search vehicles…"
           />
           <div className="vt-vehsel-list">
-            <button
-              type="button"
-              className={`vt-vehsel-item${value === "" ? " vt-vehsel-item--active" : ""}`}
-              onClick={() => pick("")}
-            >
-              All vehicles
-            </button>
+            {allowAll && (
+              <button
+                type="button"
+                className={`vt-vehsel-item${value === "" ? " vt-vehsel-item--active" : ""}`}
+                onClick={() => pick("")}
+              >
+                All vehicles
+              </button>
+            )}
             {matches.map((v) => (
               <button
                 key={v.hardwareId}
