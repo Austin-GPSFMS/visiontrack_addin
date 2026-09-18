@@ -194,6 +194,74 @@ body {
 
 /* ---- Video requests list ---- */
 
+.vt-reqtoolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+.vt-reqgroup {
+  margin-bottom: 24px;
+}
+
+.vt-reqgroup-head {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin: 0 0 10px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid #dde4ec;
+}
+
+.vt-reqgroup-head h3 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--vt-navy);
+}
+
+.vt-reqgroup-count {
+  font-size: 12px;
+  color: #8a99ad;
+}
+
+/* Smaller cards than the Dashboard event grid. */
+.vt-grid--compact {
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 12px;
+}
+
+/* First-frame poster for requested clips (no thumbnail asset from VT). */
+.vt-card-thumbvideo {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  background: #000;
+  pointer-events: none;
+}
+
+.vt-card-cams {
+  position: absolute;
+  left: 8px;
+  top: 8px;
+  background: rgba(0, 0, 0, 0.6);
+  color: #fff;
+  font-size: 11px;
+  padding: 2px 7px;
+  border-radius: 4px;
+}
+
+.vt-card-meta--row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
 .vt-reqlist {
   display: flex;
   flex-direction: column;

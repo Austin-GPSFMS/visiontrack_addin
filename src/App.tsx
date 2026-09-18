@@ -230,7 +230,11 @@ export default function App({ api }: AppProps) {
       )}
 
       {mode === "requests" && session ? (
-        <RequestsList session={session} />
+        <RequestsList
+          session={session}
+          vehicles={vehicles}
+          initialVehicleHardwareId={vehicleHardwareId}
+        />
       ) : (
         <>
       <p className="vt-scope-note">
