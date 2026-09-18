@@ -1,6 +1,6 @@
 # GPSFMS VisionTrack Add‑In — Engineering Handoff & GoFocus Blueprint
 
-_Last updated: 2026‑06‑15_
+_Last updated: 2026‑09‑18_
 
 This document describes the VisionTrack MyGeotab add‑in as it stands today, the
 conventions and decisions behind it, an operational runbook, and — in the final
@@ -143,7 +143,7 @@ Notes:
 `/api/events`, `/api/vehicles`, `/api/event-media`, `/api/event-track`,
 `/api/associations`, `/api/pair/options|run|unpair`, `/api/rules` (+ `/save`
 `/delete` `/users`), `/api/dist-lists/save|delete`, `/api/device-channels`,
-`/api/request-video`, `/api/video-requests`, `/api/watchdog`,
+`/api/request-video`, `/api/video-requests`, `/api/request-download`, `/api/watchdog`,
 `/api/scorecard/*`, `/api/collisions` (+ `/triage` `/config` `/config/save`),
 `/api/collision-media`, `/api/collision-detail`, `/api/collision-download`.
 
@@ -200,7 +200,12 @@ Two tiers, deliberately separated:
 - **Dashboard** — group + vehicle + date‑range + event‑type filters; video grid
   with a dual‑camera clip modal (synced playback), an animated Leaflet trip map,
   per‑event "request more footage", and a standalone custom video request +
-  requests list. Deep‑linkable to a clip via `#…,eventId:<id>`.
+  **Requests view** (2026‑09): vehicle filter, grouped by footage date, compact
+  first‑frame cards; click opens a fit‑to‑viewport synced multi‑camera modal
+  (1/2/3‑column grid by camera count) with trip map and a **Download all views**
+  button → `/api/request-download` returns one stitched MP4 (`composite.ts`:
+  ffmpeg `xstack` grid, channel labels, navy title bar; cached under
+  `data/composites/`, 14‑day sweep). Deep‑linkable to a clip via `#…,eventId:<id>`.
 - **Device Association** — read‑only pairing‑health table (paired / no camera /
   no VT match / no VIN) + Excel export, **plus a Pairing tool**: search a Geotab
   unit (name/VIN/serial) + a camera serial → Pair sets the VT vehicle's
@@ -240,7 +245,13 @@ ADDIN_BASE_URL=https://my.geotab.com
 INGEST_INTERVAL_SECONDS=60
 RECONCILE_ENABLED=false  # name‑sync worker; keep OFF while VT master sync runs
 INGEST_DB_PATH=./data/ingest.db
+FFMPEG_PATH=               # optional: system ffmpeg; default is the bundled ffmpeg-static binary
+COMPOSITE_FONT=            # optional: .ttf for composite labels; auto-detects DejaVu/Liberation
 ```
+- **Composite video labels need a TTF font on the box.** `composite.ts` looks for
+  DejaVu/Liberation in the usual paths; if none is found the video still builds,
+  just without channel labels / title text. `sudo apt install fonts-dejavu-core`
+  (Debian/Ubuntu) fixes it.
 - **`service-accounts.json`** (gitignored) — per‑database Geotab service account
   `{geotab_database, server, userName, password, eventTypes?}`. Used by the
   ingest/reconcile workers (CIAM‑exempt service accounts so sessions don't die).

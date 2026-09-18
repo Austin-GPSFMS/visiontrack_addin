@@ -1209,6 +1209,13 @@ body {
   margin-top: 2px;
 }
 
+.vt-modal-headbtns {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 auto;
+}
+
 .vt-modal-close {
   border: none;
   background: transparent;
@@ -1239,6 +1246,24 @@ body {
 
 .vt-modal-videos--2 {
   grid-template-columns: 1fr 1fr;
+}
+
+.vt-modal-videos--3 {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+/* Fit-to-viewport variant: cap each video's height so the whole grid (plus
+   header and map) fits a laptop screen without scrolling. --vt-vidmax is set
+   inline by the component based on how many rows the grid has. */
+.vt-modal--fit .vt-modal-video {
+  display: block;
+  width: 100%;
+  max-height: var(--vt-vidmax, 40vh);
+  object-fit: contain;
+}
+
+.vt-modal--fit .vt-modal-map .vt-map {
+  height: 180px;
 }
 
 .vt-modal-videocell {
@@ -1303,5 +1328,8 @@ body {
 @media (max-width: 900px) {
   .vt-modal-videos--2 {
     grid-template-columns: 1fr;
+  }
+  .vt-modal-videos--3 {
+    grid-template-columns: 1fr 1fr;
   }
 }

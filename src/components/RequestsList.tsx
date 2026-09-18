@@ -9,8 +9,9 @@
  */
 
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type React from "react";
 import type { GeotabSession, ScopedVehicle, TrackPoint, VideoRequest, VtMedia } from "../types";
-import { fetchEventTrack, fetchVideoRequests } from "../api/proxy";
+import { downloadRequestComposite, fetchEventTrack, fetchVideoRequests } from "../api/proxy";
 import { friendlyError } from "../api/geotab";
 import { VehicleSelect } from "./VehicleSelect";
 
@@ -172,6 +173,30 @@ function RequestClipModal({
   const [track, setTrack] = useState<TrackPoint[] | null>(null);
   const [playheadMs, setPlayheadMs] = useState(0);
 
+  // "Download all views": one stitched MP4 built by the proxy.
+  const [dlBusy, setDlBusy] = useState(false);
+  const [dlErr, setDlErr] = useState<string | null>(null);
+  const downloadAll = async () => {
+    setDlBusy(true);
+    setDlErr(null);
+    try {
+      const blob = await downloadRequestComposite({ session, requestId: r.id });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      const stamp = r.startIso.slice(0, 19).replace(/[:T]/g, "-");
+      a.href = url;
+      a.download = `${(r.vehicleLabel ?? r.hardwareId).replace(/[^\w.-]+/g, "_")}_${stamp}_multiview.mp4`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      setDlErr(String((e as Error)?.message ?? e));
+    } finally {
+      setDlBusy(false);
+    }
+  };
+
   // GPS breadcrumbs for the requested window (+ lead-in).
   useEffect(() => {
     const lastFrame = videos.find((v) => v.lastFrameDateTime)?.lastFrameDateTime;
@@ -217,10 +242,17 @@ function RequestClipModal({
 
   const st = stateOf(r);
 
+  // Grid shape: 1 → 1 col, 2 → 2 cols, 4 → 2x2, otherwise 3 cols. Cap each
+  // video's height so every row fits on a laptop screen without scrolling.
+  const cols = videos.length <= 2 ? Math.max(videos.length, 1) : videos.length === 4 ? 2 : 3;
+  const rows = Math.ceil(videos.length / cols);
+  const vidMax = rows > 1 ? `${Math.floor(62 / rows)}vh` : "52vh";
+
   return (
     <div className="vt-modal-backdrop" onClick={onClose}>
       <div
-        className={`vt-modal${videos.length > 1 ? " vt-modal--wide" : ""}`}
+        className={`vt-modal vt-modal--fit${videos.length > 1 ? " vt-modal--wide" : ""}`}
+        style={{ "--vt-vidmax": vidMax } as React.CSSProperties}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="vt-modal-head">
@@ -231,15 +263,38 @@ function RequestClipModal({
               {fmt(r.createdAt)} <span className={st.cls}>{st.text}</span>
             </div>
           </div>
-          <button className="vt-modal-close" onClick={onClose} aria-label="Close">
-            ✕
-          </button>
+          <div className="vt-modal-headbtns">
+            {videos.length > 0 && (
+              <button
+                className="vt-btn vt-btn--primary"
+                onClick={downloadAll}
+                disabled={dlBusy}
+                title="Stitch every camera into one synced multi-view MP4"
+              >
+                {dlBusy ? "Building video…" : "Download all views"}
+              </button>
+            )}
+            <button className="vt-modal-close" onClick={onClose} aria-label="Close">
+              ✕
+            </button>
+          </div>
         </div>
+        {dlBusy && (
+          <div className="vt-hint" style={{ marginBottom: 8 }}>
+            Combining {videos.length} camera{videos.length === 1 ? "" : "s"} into one video — this
+            can take a minute or two the first time. Your download will start automatically.
+          </div>
+        )}
+        {dlErr && (
+          <div className="vt-hint" style={{ color: "#c43232", marginBottom: 8 }}>
+            {dlErr}
+          </div>
+        )}
 
         {videos.length === 0 ? (
           <div className="vt-card-thumb-empty">No video available.</div>
         ) : (
-          <div className={`vt-modal-videos vt-modal-videos--${Math.min(videos.length, 2)}`}>
+          <div className={`vt-modal-videos vt-modal-videos--${cols}`}>
             {videos.map((m, i) => (
               <div key={m.id} className="vt-modal-videocell">
                 <video

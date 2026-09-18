@@ -264,6 +264,31 @@ export async function downloadCollisionData(params: {
   return resp.blob();
 }
 
+/** Download one custom video request as a single stitched multi-camera MP4
+ *  (synced grid, channel labels, GPSFMS title bar). The proxy builds it with
+ *  ffmpeg on first request and caches it, so this can take a minute or two. */
+export async function downloadRequestComposite(params: {
+  session: GeotabSession;
+  requestId: string;
+}): Promise<Blob> {
+  const resp = await fetch(`${PROXY_BASE_URL}/api/request-download`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(params),
+  });
+  if (!resp.ok) {
+    let detail = "";
+    try {
+      const data = (await resp.json()) as { error?: string };
+      detail = data.error ? `: ${data.error}` : "";
+    } catch {
+      /* ignore */
+    }
+    throw new Error(`Download failed (${resp.status})${detail}`);
+  }
+  return resp.blob();
+}
+
 /** Collision sources config: which Geotab rules feed the Collision Center. */
 export function fetchCollisionConfig(
   session: GeotabSession
