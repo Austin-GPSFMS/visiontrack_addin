@@ -245,13 +245,14 @@ ADDIN_BASE_URL=https://my.geotab.com
 INGEST_INTERVAL_SECONDS=60
 RECONCILE_ENABLED=false  # name‑sync worker; keep OFF while VT master sync runs
 INGEST_DB_PATH=./data/ingest.db
-FFMPEG_PATH=               # optional: system ffmpeg; default is the bundled ffmpeg-static binary
+FFMPEG_PATH=               # optional; default: /usr/bin/ffmpeg if present, else bundled ffmpeg-static
 COMPOSITE_FONT=            # optional: .ttf for composite labels; auto-detects DejaVu/Liberation
 ```
-- **Composite video labels need a TTF font on the box.** `composite.ts` looks for
-  DejaVu/Liberation in the usual paths; if none is found the video still builds,
-  just without channel labels / title text. `sudo apt install fonts-dejavu-core`
-  (Debian/Ubuntu) fixes it.
+- **Composite labels need the distro ffmpeg + a TTF font.** The bundled
+  `ffmpeg-static` binary has **no `drawtext`** (built without libfreetype), so
+  `composite.ts` prefers `/usr/bin/ffmpeg` when present and probes `-filters`;
+  without drawtext the video still builds, just unlabelled. On the box:
+  `sudo apt install -y ffmpeg fonts-dejavu-core`.
 - **`service-accounts.json`** (gitignored) — per‑database Geotab service account
   `{geotab_database, server, userName, password, eventTypes?}`. Used by the
   ingest/reconcile workers (CIAM‑exempt service accounts so sessions don't die).
