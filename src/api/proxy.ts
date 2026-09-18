@@ -264,6 +264,31 @@ export async function downloadCollisionData(params: {
   return resp.blob();
 }
 
+/** Build status of a request's stitched multi-view MP4 on the proxy. */
+export interface CompositeStatus {
+  state: "none" | "queued" | "downloading" | "encoding" | "ready" | "failed";
+  /** 0–100 while encoding; 100 when ready. */
+  pct: number;
+  /** Jobs ahead in the proxy's single-worker queue. */
+  position: number;
+  error?: string;
+}
+
+export function fetchRequestCompositeStatus(params: {
+  session: GeotabSession;
+  requestId: string;
+}): Promise<CompositeStatus> {
+  return postJson<CompositeStatus>("/api/request-download/status", params);
+}
+
+/** Queue (or reuse) the composite build; returns the current status. */
+export function startRequestComposite(params: {
+  session: GeotabSession;
+  requestId: string;
+}): Promise<CompositeStatus> {
+  return postJson<CompositeStatus>("/api/request-download/start", params);
+}
+
 /** Download one custom video request as a single stitched multi-camera MP4
  *  (synced grid, channel labels, GPSFMS title bar). The proxy builds it with
  *  ffmpeg on first request and caches it, so this can take a minute or two. */

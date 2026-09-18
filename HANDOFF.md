@@ -143,7 +143,7 @@ Notes:
 `/api/events`, `/api/vehicles`, `/api/event-media`, `/api/event-track`,
 `/api/associations`, `/api/pair/options|run|unpair`, `/api/rules` (+ `/save`
 `/delete` `/users`), `/api/dist-lists/save|delete`, `/api/device-channels`,
-`/api/request-video`, `/api/video-requests`, `/api/request-download`, `/api/watchdog`,
+`/api/request-video`, `/api/video-requests`, `/api/request-download` (+ `/start` `/status`), `/api/watchdog`,
 `/api/scorecard/*`, `/api/collisions` (+ `/triage` `/config` `/config/save`),
 `/api/collision-media`, `/api/collision-detail`, `/api/collision-download`.
 
@@ -203,9 +203,14 @@ Two tiers, deliberately separated:
   **Requests view** (2026‑09): vehicle filter, grouped by footage date, compact
   first‑frame cards; click opens a fit‑to‑viewport synced multi‑camera modal
   (1/2/3‑column grid by camera count) with trip map and a **Download all views**
-  button → `/api/request-download` returns one stitched MP4 (`composite.ts`:
-  ffmpeg `xstack` grid, channel labels, navy title bar; cached under
-  `data/composites/`, 14‑day sweep). Deep‑linkable to a clip via `#…,eventId:<id>`.
+  button → one stitched MP4 (`composite.ts`: ffmpeg `xstack` grid, channel
+  labels, navy title bar; 15 fps, `superfast`/CRF 25, 640×360 tiles for ≤2 cams
+  else 480×270). Builds run through a **single‑worker queue** with `-progress`
+  parsing; the UI calls `/start`, polls `/status` (state/pct/position), then
+  fetches the file. The `/api/video-requests` poll **pre‑queues** builds for
+  requests that turned Ready in the last 7 days, so clicks are usually cache
+  hits. Cached under `data/composites/`, 14‑day sweep. Deep‑linkable to a clip
+  via `#…,eventId:<id>`.
 - **Device Association** — read‑only pairing‑health table (paired / no camera /
   no VT match / no VIN) + Excel export, **plus a Pairing tool**: search a Geotab
   unit (name/VIN/serial) + a camera serial → Pair sets the VT vehicle's
@@ -247,6 +252,8 @@ RECONCILE_ENABLED=false  # name‑sync worker; keep OFF while VT master sync run
 INGEST_DB_PATH=./data/ingest.db
 FFMPEG_PATH=               # optional; default: /usr/bin/ffmpeg if present, else bundled ffmpeg-static
 COMPOSITE_FONT=            # optional: .ttf for composite labels; auto-detects DejaVu/Liberation
+COMPOSITE_PRESET=superfast # optional x264 preset (ultrafast … medium); box has 1 vCPU
+COMPOSITE_CRF=25           # optional x264 quality (lower = better/slower)
 ```
 - **Composite labels need the distro ffmpeg + a TTF font.** The bundled
   `ffmpeg-static` binary has **no `drawtext`** (built without libfreetype), so

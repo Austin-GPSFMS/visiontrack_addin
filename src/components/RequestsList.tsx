@@ -11,7 +11,14 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type React from "react";
 import type { GeotabSession, ScopedVehicle, TrackPoint, VideoRequest, VtMedia } from "../types";
-import { downloadRequestComposite, fetchEventTrack, fetchVideoRequests } from "../api/proxy";
+import {
+  downloadRequestComposite,
+  fetchEventTrack,
+  fetchRequestCompositeStatus,
+  fetchVideoRequests,
+  startRequestComposite,
+} from "../api/proxy";
+import type { CompositeStatus } from "../api/proxy";
 import { friendlyError } from "../api/geotab";
 import { VehicleSelect } from "./VehicleSelect";
 
@@ -173,29 +180,75 @@ function RequestClipModal({
   const [track, setTrack] = useState<TrackPoint[] | null>(null);
   const [playheadMs, setPlayheadMs] = useState(0);
 
-  // "Download all views": one stitched MP4 built by the proxy.
+  // "Download all views": one stitched MP4 built by the proxy. The proxy
+  // pre-builds these as requests turn Ready, so this is usually instant; when
+  // it isn't, we queue the build and poll its progress rather than holding
+  // one long HTTP request open.
   const [dlBusy, setDlBusy] = useState(false);
   const [dlErr, setDlErr] = useState<string | null>(null);
+  const [dlStatus, setDlStatus] = useState<CompositeStatus | null>(null);
+  const cancelled = useRef(false);
+
+  useEffect(() => {
+    cancelled.current = false;
+    if (videos.length === 0) return;
+    fetchRequestCompositeStatus({ session, requestId: r.id })
+      .then((st) => !cancelled.current && setDlStatus(st))
+      .catch(() => undefined);
+    return () => {
+      cancelled.current = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [r.id]);
+
+  const saveBlob = (blob: Blob) => {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    const stamp = r.startIso.slice(0, 19).replace(/[:T]/g, "-");
+    a.href = url;
+    a.download = `${(r.vehicleLabel ?? r.hardwareId).replace(/[^\w.-]+/g, "_")}_${stamp}_multiview.mp4`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  };
+
   const downloadAll = async () => {
     setDlBusy(true);
     setDlErr(null);
     try {
-      const blob = await downloadRequestComposite({ session, requestId: r.id });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      const stamp = r.startIso.slice(0, 19).replace(/[:T]/g, "-");
-      a.href = url;
-      a.download = `${(r.vehicleLabel ?? r.hardwareId).replace(/[^\w.-]+/g, "_")}_${stamp}_multiview.mp4`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(url);
+      let st = await startRequestComposite({ session, requestId: r.id });
+      setDlStatus(st);
+      while (st.state !== "ready" && st.state !== "failed") {
+        await new Promise((res) => setTimeout(res, 2000));
+        if (cancelled.current) return;
+        st = await fetchRequestCompositeStatus({ session, requestId: r.id });
+        setDlStatus(st);
+      }
+      if (st.state === "failed") throw new Error(st.error ?? "Build failed.");
+      saveBlob(await downloadRequestComposite({ session, requestId: r.id }));
     } catch (e) {
       setDlErr(String((e as Error)?.message ?? e));
     } finally {
-      setDlBusy(false);
+      if (!cancelled.current) setDlBusy(false);
     }
   };
+
+  const dlLabel = (() => {
+    if (!dlBusy) return dlStatus?.state === "ready" ? "Download all views ✓" : "Download all views";
+    switch (dlStatus?.state) {
+      case "queued":
+        return dlStatus.position > 0 ? `Queued (${dlStatus.position} ahead)…` : "Queued…";
+      case "downloading":
+        return "Fetching clips…";
+      case "encoding":
+        return `Stitching… ${dlStatus.pct}%`;
+      case "ready":
+        return "Downloading…";
+      default:
+        return "Starting…";
+    }
+  })();
 
   // GPS breadcrumbs for the requested window (+ lead-in).
   useEffect(() => {
@@ -271,7 +324,7 @@ function RequestClipModal({
                 disabled={dlBusy}
                 title="Stitch every camera into one synced multi-view MP4"
               >
-                {dlBusy ? "Building video…" : "Download all views"}
+                {dlLabel}
               </button>
             )}
             <button className="vt-modal-close" onClick={onClose} aria-label="Close">
@@ -279,10 +332,16 @@ function RequestClipModal({
             </button>
           </div>
         </div>
-        {dlBusy && (
+        {dlBusy && dlStatus?.state !== "ready" && (
           <div className="vt-hint" style={{ marginBottom: 8 }}>
-            Combining {videos.length} camera{videos.length === 1 ? "" : "s"} into one video — this
-            can take a minute or two the first time. Your download will start automatically.
+            Combining {videos.length} camera{videos.length === 1 ? "" : "s"} into one synced video
+            on the server. You can keep watching here; the download starts automatically when it's
+            done.
+            {dlStatus?.state === "encoding" && (
+              <span className="vt-progress" aria-hidden>
+                <span className="vt-progress-bar" style={{ width: `${dlStatus.pct}%` }} />
+              </span>
+            )}
           </div>
         )}
         {dlErr && (
