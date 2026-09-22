@@ -8,6 +8,7 @@
  */
 
 import { lazy, Suspense, useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import { Banner, Button } from "@geotab/zenith";
 import type {
   CollisionDetailResponse,
@@ -249,7 +250,7 @@ export function CollisionDetailModal({
     return state;
   };
 
-  return (
+  return createPortal(
     <div className="vt-modal-backdrop" onClick={onClose}>
       <div className="vt-modal vt-modal--wide" onClick={(e) => e.stopPropagation()}>
         <div className="vt-header">
@@ -498,6 +499,7 @@ export function CollisionDetailModal({
           </div>
         )}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

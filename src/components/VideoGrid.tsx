@@ -8,6 +8,7 @@
  */
 
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import type { GeotabSession, TrackPoint, VtEvent, VtMedia } from "../types";
 import { fetchEventMedia, fetchEventTrack, requestVideo } from "../api/proxy";
 
@@ -299,7 +300,7 @@ function VideoModal({
 
   const title = (ev.eventTypeLabels ?? []).join(", ") || "Event video";
 
-  return (
+  return createPortal(
     <div className="vt-modal-backdrop" onClick={onClose}>
       <div
         className={`vt-modal${videos.length > 1 ? " vt-modal--wide" : ""}`}
@@ -403,7 +404,8 @@ function VideoModal({
           </div>
         )}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 

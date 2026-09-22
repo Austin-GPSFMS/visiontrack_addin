@@ -9,6 +9,7 @@
  */
 
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import type React from "react";
 import type { GeotabSession, ScopedVehicle, TrackPoint, VideoRequest, VtMedia } from "../types";
 import {
@@ -302,7 +303,7 @@ function RequestClipModal({
   // Percent of the container height each video may take (see .vt-modal--fit).
   const vidFrac = rows > 1 ? Math.floor(62 / rows) : 52;
 
-  return (
+  return createPortal(
     <div className="vt-modal-backdrop" onClick={onClose}>
       <div
         className={`vt-modal vt-modal--fit${videos.length > 1 ? " vt-modal--wide" : ""}`}
@@ -388,7 +389,8 @@ function RequestClipModal({
           </div>
         )}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 

@@ -6,6 +6,7 @@
  */
 
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import type { DeviceChannel, GeotabSession, ScopedVehicle } from "../types";
 import { fetchDeviceChannels, requestVideo } from "../api/proxy";
 import { friendlyError } from "../api/geotab";
@@ -90,7 +91,7 @@ export function RequestVideoModal({
     }
   };
 
-  return (
+  return createPortal(
     <div className="vt-modal-backdrop" onClick={onClose}>
       <div className="vt-modal" style={{ width: "min(560px, 94vw)" }} onClick={(e) => e.stopPropagation()}>
         <div className="vt-modal-head">
@@ -174,6 +175,7 @@ export function RequestVideoModal({
           Requests list in a few minutes.
         </small>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

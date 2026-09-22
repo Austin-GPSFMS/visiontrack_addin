@@ -5,6 +5,7 @@
  */
 
 import { useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import { Banner, Button } from "@geotab/zenith";
 import type { CollisionRuleOption, GeotabSession } from "../types";
 import { fetchCollisionConfig, saveCollisionConfig } from "../api/proxy";
@@ -72,7 +73,7 @@ export function CollisionSourcesModal({
     }
   };
 
-  return (
+  return createPortal(
     <div className="vt-modal-backdrop" onClick={onClose}>
       <div className="vt-modal" onClick={(e) => e.stopPropagation()}>
         <div className="vt-header">
@@ -146,6 +147,7 @@ export function CollisionSourcesModal({
           </>
         )}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
