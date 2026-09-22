@@ -156,8 +156,13 @@ export function fetchDeviceChannels(params: {
   session: GeotabSession;
   hardwareId: string;
   vehicleId?: string;
-}): Promise<{ channels: DeviceChannel[] }> {
-  return postJson<{ channels: DeviceChannel[] }>("/api/device-channels", params);
+  /** Skip the footage-evidence check; just return the labels (fast). */
+  labelsOnly?: boolean;
+}): Promise<{ channels: DeviceChannel[]; verifiedFromEvidence?: boolean }> {
+  return postJson<{ channels: DeviceChannel[]; verifiedFromEvidence?: boolean }>(
+    "/api/device-channels",
+    params
+  );
 }
 
 /** Submit an on-demand video clip request. */

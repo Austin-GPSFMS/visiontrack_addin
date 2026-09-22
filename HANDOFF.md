@@ -275,6 +275,14 @@ COMPOSITE_CRF=25           # optional x264 quality (lower = better/slower)
 - **Vite `base` must be absolute** (injected, not iframed). Relative paths 404.
 - **VisionTrack pagination is 1‑based** (page=0 → HTTP 500) and **`/events`
   rejects ranges > 72h** — chunk longer windows.
+- **`/channel-labels` is config, not hardware.** A device can carry
+  Forward/Driver/Left/Rear labels with only two lenses wired; `/camera-type` is
+  too sparse to trust (it hid real cameras in June). `/api/device-channels`
+  therefore marks each label `verified` from evidence — media on the device's
+  recent events + media returned by earlier completed requests (30‑min cache) —
+  and the Request Video picker pre‑selects only verified channels. Requests that
+  come back short show "2 of 4 cameras returned footage" and name the missing
+  channels.
 - **You cannot create Geotab custom diagnostics via the API** — the original
   StatusData‑based notification plan was abandoned for self‑owned SMTP rules.
 - **Server‑side time = UTC.** `toLocaleString()`/`toUTCString()` on the Lightsail

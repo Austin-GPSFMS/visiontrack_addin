@@ -14,6 +14,7 @@ import type React from "react";
 import type { GeotabSession, ScopedVehicle, TrackPoint, VideoRequest, VtMedia } from "../types";
 import {
   downloadRequestComposite,
+  fetchDeviceChannels,
   fetchEventTrack,
   fetchRequestCompositeStatus,
   fetchVideoRequests,
@@ -22,6 +23,7 @@ import {
 import type { CompositeStatus } from "../api/proxy";
 import { friendlyError } from "../api/geotab";
 import { VehicleSelect } from "./VehicleSelect";
+import type { DeviceChannel } from "../types";
 
 // Leaflet ships as its own chunk; only fetched when a clip modal opens.
 const TripMap = lazy(() => import("./TripMap"));
@@ -95,6 +97,23 @@ function videosOf(r: VideoRequest): VtMedia[] {
   return (r.media ?? []).filter((m) => m.mediaType === MEDIA_VIDEO);
 }
 
+/** Requested channels that came back with no video (only meaningful once Ready). */
+function missingChannels(r: VideoRequest): number[] {
+  if (r.state !== 3) return [];
+  const got = new Set(videosOf(r).map((v) => v.channel).filter((c): c is number => c != null));
+  return r.channels.filter((c) => !got.has(c));
+}
+
+/** "4 cameras" or "2 of 4 cameras returned footage". */
+function cameraSummary(r: VideoRequest): string {
+  const missing = missingChannels(r);
+  const n = r.channels.length;
+  if (r.state === 3 && missing.length > 0) {
+    return `${n - missing.length} of ${n} camera${n === 1 ? "" : "s"} returned footage`;
+  }
+  return `${n} camera${n === 1 ? "" : "s"}`;
+}
+
 // ---------------------------------------------------------------------------
 // Card
 // ---------------------------------------------------------------------------
@@ -132,8 +151,13 @@ function RequestCard({ r, onOpen }: { r: VideoRequest; onOpen: (r: VideoRequest)
             {r.state != null && r.state < 3 ? `${st.text}…` : st.text}
           </div>
         )}
-        <span className="vt-card-cams">
-          {r.channels.length} cam{r.channels.length === 1 ? "" : "s"}
+        <span
+          className={`vt-card-cams${missingChannels(r).length > 0 ? " vt-card-cams--short" : ""}`}
+          title={cameraSummary(r)}
+        >
+          {missingChannels(r).length > 0
+            ? `${r.channels.length - missingChannels(r).length}/${r.channels.length} cams`
+            : `${r.channels.length} cam${r.channels.length === 1 ? "" : "s"}`}
         </span>
         <span className="vt-card-duration">{fmtDuration(r.duration)}</span>
         {playable && <span className="vt-card-play">▶</span>}
@@ -189,6 +213,25 @@ function RequestClipModal({
   const [dlErr, setDlErr] = useState<string | null>(null);
   const [dlStatus, setDlStatus] = useState<CompositeStatus | null>(null);
   const cancelled = useRef(false);
+
+  // Channels that were requested but returned nothing; look up their labels
+  // (labels only — no evidence check) so the note can say "Left, Rear".
+  const missing = useMemo(() => missingChannels(r), [r]);
+  const [labels, setLabels] = useState<DeviceChannel[] | null>(null);
+  useEffect(() => {
+    if (missing.length === 0) return;
+    let off = false;
+    fetchDeviceChannels({ session, hardwareId: r.hardwareId, labelsOnly: true })
+      .then((res) => !off && setLabels(res.channels))
+      .catch(() => undefined);
+    return () => {
+      off = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [r.hardwareId, missing.length]);
+  const missingNames = missing.map(
+    (ch) => labels?.find((c) => c.channel === ch)?.label ?? `Channel ${ch}`
+  );
 
   useEffect(() => {
     cancelled.current = false;
@@ -314,7 +357,7 @@ function RequestClipModal({
           <div>
             <div className="vt-modal-title">{r.vehicleLabel || r.hardwareId}</div>
             <div className="vt-modal-sub">
-              {fmt(r.startIso)} · {r.duration}s · {r.channels.length} camera(s) · requested{" "}
+              {fmt(r.startIso)} · {r.duration}s · {cameraSummary(r)} · requested{" "}
               {fmt(r.createdAt)} <span className={st.cls}>{st.text}</span>
             </div>
           </div>
@@ -349,6 +392,15 @@ function RequestClipModal({
         {dlErr && (
           <div className="vt-hint" style={{ color: "#c43232", marginBottom: 8 }}>
             {dlErr}
+          </div>
+        )}
+        {missing.length > 0 && (
+          <div className="vt-hint vt-hint--warn" style={{ marginBottom: 8 }}>
+            No footage came back for {missingNames.join(", ")}. {missing.length === 1 ? "That channel" : "Those channels"}{" "}
+            {missing.length === 1 ? "is" : "are"} configured on the camera but may not have a lens
+            installed — the stitched download includes only the{" "}
+            {r.channels.length - missing.length} view{r.channels.length - missing.length === 1 ? "" : "s"} that
+            returned.
           </div>
         )}
 

@@ -57,7 +57,10 @@ export function RequestVideoModal({
       .then((r) => {
         if (cancelled) return;
         setChannels(r.channels);
-        setSelectedChannels(r.channels.map((c) => c.channel)); // default all
+        // Default: channels that have actually produced footage. If we have no
+        // evidence for this device yet, fall back to all labelled channels.
+        const verified = r.channels.filter((c) => c.verified === true);
+        setSelectedChannels((verified.length > 0 ? verified : r.channels).map((c) => c.channel));
       })
       .catch((e) => !cancelled && setError(friendlyError(e)))
       .finally(() => !cancelled && setLoadingChannels(false));
@@ -158,8 +161,27 @@ export function RequestVideoModal({
                     }
                   />
                   {c.label}
+                  {c.verified === true && (
+                    <span className="vt-chan-note vt-chan-note--ok" title="Footage seen from this camera recently">
+                      ✓ footage seen
+                    </span>
+                  )}
+                  {c.verified === false && (
+                    <span
+                      className="vt-chan-note"
+                      title="This channel is configured but no footage has come back from it recently — it may not have a camera installed."
+                    >
+                      no footage seen
+                    </span>
+                  )}
                 </label>
               ))}
+              {channels.some((c) => c.verified === false) && (
+                <small className="vt-hint">
+                  Unchecked cameras are configured labels that haven't returned any footage
+                  recently — they may not be installed. You can still request them.
+                </small>
+              )}
             </div>
           )}
         </div>

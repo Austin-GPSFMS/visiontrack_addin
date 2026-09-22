@@ -329,6 +329,9 @@ export interface PickerUser {
 export interface DeviceChannel {
   channel: number;
   label: string;
+  /** true = footage has been seen from this channel recently; false = labelled
+   *  but no footage seen (may not be installed); undefined = no evidence yet. */
+  verified?: boolean;
 }
 
 export interface WatchdogRow {
