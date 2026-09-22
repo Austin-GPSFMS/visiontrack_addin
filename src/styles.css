@@ -1178,7 +1178,9 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 10000;
+  /* Above MyGeotab's own fixed header bar, which otherwise stays undimmed and
+     covers the modal header when the modal reaches the top of the window. */
+  z-index: 2147483000;
   /* Size container: MyGeotab injects add-ins inside a transformed wrapper, so
      position:fixed resolves to the add-in area rather than the viewport. vw/vh
      would overflow it; %, cqw and cqh measure the real containing block. */
@@ -1288,14 +1290,47 @@ body {
 /* Fit-to-viewport variant: cap each video's height so the whole grid (plus
    header and map) fits a laptop screen without scrolling. --vt-vidmax is set
    inline by the component based on how many rows the grid has. */
+/* The fit modal is a flex column capped at the container height: the video
+   grid takes whatever is left after the header and map, and each video scales
+   (letterboxed) to its grid row. On a big screen --vt-vidfrac still caps a
+   video's share of the height so a single row doesn't balloon. */
+.vt-modal--fit {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.vt-modal--fit .vt-modal-videos {
+  flex: 1 1 auto;
+  min-height: 0;
+  grid-auto-rows: minmax(0, 1fr);
+}
+
+.vt-modal--fit .vt-modal-videocell {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
 .vt-modal--fit .vt-modal-video {
   display: block;
+  flex: 1 1 auto;
+  min-height: 0;
   width: 100%;
-  /* --vt-vidfrac = % of the container height each video may use (set inline
-     by the component from the row count). vh fallback, cqh where supported. */
+  height: 100%;
   max-height: calc(var(--vt-vidfrac, 40) * 1vh);
   max-height: calc(var(--vt-vidfrac, 40) * 1cqh);
   object-fit: contain;
+}
+
+.vt-modal--fit .vt-modal-chanlabel {
+  flex: 0 0 auto;
+}
+
+.vt-modal--fit .vt-modal-head,
+.vt-modal--fit .vt-modal-map,
+.vt-modal--fit .vt-hint {
+  flex: 0 0 auto;
 }
 
 .vt-modal--fit .vt-modal-map .vt-map {
@@ -1400,7 +1435,15 @@ body {
   .vt-modal-videos--3 {
     grid-template-columns: 1fr;
   }
+  .vt-modal--fit {
+    display: block;
+    overflow: auto;
+  }
+  .vt-modal--fit .vt-modal-videos {
+    grid-auto-rows: auto;
+  }
   .vt-modal--fit .vt-modal-video {
+    height: auto;
     max-height: 40vh;
     max-height: 40cqh;
   }
