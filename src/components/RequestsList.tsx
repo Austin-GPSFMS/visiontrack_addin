@@ -102,7 +102,7 @@ function RequestCard({ r, onOpen }: { r: VideoRequest; onOpen: (r: VideoRequest)
   const st = stateOf(r);
   const videos = videosOf(r);
   const playable = videos.length > 0;
-  const title = r.vehicleLabel ?? r.hardwareId;
+  const title = r.vehicleLabel || r.hardwareId;
 
   return (
     <div
@@ -206,7 +206,7 @@ function RequestClipModal({
     const a = document.createElement("a");
     const stamp = r.startIso.slice(0, 19).replace(/[:T]/g, "-");
     a.href = url;
-    a.download = `${(r.vehicleLabel ?? r.hardwareId).replace(/[^\w.-]+/g, "_")}_${stamp}_multiview.mp4`;
+    a.download = `${(r.vehicleLabel || r.hardwareId).replace(/[^\w.-]+/g, "_")}_${stamp}_multiview.mp4`;
     document.body.appendChild(a);
     a.click();
     a.remove();
@@ -299,18 +299,19 @@ function RequestClipModal({
   // video's height so every row fits on a laptop screen without scrolling.
   const cols = videos.length <= 2 ? Math.max(videos.length, 1) : videos.length === 4 ? 2 : 3;
   const rows = Math.ceil(videos.length / cols);
-  const vidMax = rows > 1 ? `${Math.floor(62 / rows)}vh` : "52vh";
+  // Percent of the container height each video may take (see .vt-modal--fit).
+  const vidFrac = rows > 1 ? Math.floor(62 / rows) : 52;
 
   return (
     <div className="vt-modal-backdrop" onClick={onClose}>
       <div
         className={`vt-modal vt-modal--fit${videos.length > 1 ? " vt-modal--wide" : ""}`}
-        style={{ "--vt-vidmax": vidMax } as React.CSSProperties}
+        style={{ "--vt-vidfrac": vidFrac } as React.CSSProperties}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="vt-modal-head">
           <div>
-            <div className="vt-modal-title">{r.vehicleLabel ?? r.hardwareId}</div>
+            <div className="vt-modal-title">{r.vehicleLabel || r.hardwareId}</div>
             <div className="vt-modal-sub">
               {fmt(r.startIso)} · {r.duration}s · {r.channels.length} camera(s) · requested{" "}
               {fmt(r.createdAt)} <span className={st.cls}>{st.text}</span>
