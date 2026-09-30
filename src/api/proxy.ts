@@ -91,8 +91,51 @@ export function fetchEvents(query: EventsQuery): Promise<EventsResponse> {
 export function fetchScopedVehicles(
   session: GeotabSession,
   groupIds?: string[]
-): Promise<{ vehicles: ScopedVehicle[] }> {
-  return postJson<{ vehicles: ScopedVehicle[] }>("/api/vehicles", { session, groupIds });
+): Promise<{ vehicles: ScopedVehicle[]; canLiveView?: boolean }> {
+  return postJson<{ vehicles: ScopedVehicle[]; canLiveView?: boolean }>("/api/vehicles", {
+    session,
+    groupIds,
+  });
+}
+
+// ---- Live camera video (HLS) — gated by the gpsfmsCameraLive clearance ----
+
+export interface LiveStartResponse {
+  channels: Array<{ channel: number; url: string }>;
+  statusType?: number;
+  /** Hard cap the proxy enforces per viewing session. */
+  maxSeconds: number;
+  pingSeconds: number;
+}
+
+export function startLive(params: {
+  session: GeotabSession;
+  hardwareId: string;
+  vehicleId?: string;
+  channels: number[];
+  quality: 0 | 1;
+}): Promise<LiveStartResponse> {
+  return postJson<LiveStartResponse>("/api/live/start", params);
+}
+
+export function pingLive(params: {
+  session: GeotabSession;
+  hardwareId: string;
+}): Promise<{ active: boolean; remainingSeconds: number }> {
+  return postJson("/api/live/ping", params);
+}
+
+/** Stop the stream. keepalive lets this fire during page unload. */
+export async function stopLive(
+  params: { session: GeotabSession; hardwareId: string },
+  opts?: { keepalive?: boolean }
+): Promise<void> {
+  await fetch(`${PROXY_BASE_URL}/api/live/stop`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(params),
+    keepalive: opts?.keepalive ?? false,
+  });
 }
 
 /** Watchdog: scoped vehicles with last Geotab + camera contact. */

@@ -144,7 +144,7 @@ Notes:
 `/api/associations`, `/api/pair/options|run|unpair`, `/api/rules` (+ `/save`
 `/delete` `/users`), `/api/dist-lists/save|delete`, `/api/device-channels`,
 `/api/request-video`, `/api/video-requests`, `/api/request-download` (+ `/start` `/status`), `/api/watchdog`,
-`/api/scorecard/*`, `/api/collisions` (+ `/triage` `/config` `/config/save`),
+`/api/live/start|ping|stop`, `/api/scorecard/*`, `/api/collisions` (+ `/triage` `/config` `/config/save`),
 `/api/collision-media`, `/api/collision-detail`, `/api/collision-download`.
 
 ### Background workers (started in `server.ts`)
@@ -182,11 +182,14 @@ Two tiers, deliberately separated:
 
 - Custom MyGeotab security identifiers (declared in `config.json`):
   `gpsfmsCameraView` (View Camera Dashboard), `gpsfmsCameraRules` (Manage Camera
-  Rules), `gpsfmsCameraRecipients` (Manage Camera Recipients).
+  Rules), `gpsfmsCameraRecipients` (Manage Camera Recipients),
+  `gpsfmsCameraLive` (View Live Camera Video — added 2026‑09, config v1.2.0).
 - `getUserPermissions` reads the user's `securityFilters`; **"Everything" =
   full Administrator** (`isAdmin`).
 - `canManageRules = isAdmin || has(gpsfmsCameraRules)`;
   `canManageRecipients = canManageRules || has(gpsfmsCameraRecipients)`.
+- `canLiveView = isAdmin || has(gpsfmsCameraLive)` — gates `/api/live/*` and
+  the Dashboard "Live view" button (`/api/vehicles` returns `canLiveView`).
 - **Per‑recipient visibility:** non‑admins only see/manage recipients within
   their own group access; external emails and out‑of‑scope recipients are hidden
   and preserved (never clobbered) on save. Only a full Administrator sees the
@@ -211,6 +214,14 @@ Two tiers, deliberately separated:
   requests that turned Ready in the last 7 days, so clicks are usually cache
   hits. Cached under `data/composites/`, 14‑day sweep. Deep‑linkable to a clip
   via `#…,eventId:<id>`.
+- **Live view** (2026‑09) — Dashboard button (clearance‑gated) → modal: pick
+  vehicle, cameras (verified pre‑selected, max 2 by default), SD/HD → proxy
+  `POST /streaming/live/hls` → hls.js players (native HLS on Safari). The
+  proxy tracks each stream (`liveSessions`), the viewer pings every 30 s, and
+  the proxy stops the stream at VisionTrack when pings stop for 90 s, on
+  Stop/close/`pagehide`, or at the **15‑minute hard cap** — live video burns the
+  customer's cellular data. If HLS playback 401s, the m3u8/segments need the
+  bearer token and must be proxied; today they are played directly.
 - **Device Association** — read‑only pairing‑health table (paired / no camera /
   no VT match / no VIN) + Excel export, **plus a Pairing tool**: search a Geotab
   unit (name/VIN/serial) + a camera serial → Pair sets the VT vehicle's
@@ -316,6 +327,8 @@ cd visiontrack_addin
 npm run build
 git add -A && git commit -m "..." && git push     # commits dist/
 # then in MyGeotab: re‑paste config.json only if menu/securityIds changed
+# (a new securityId also needs adding to the relevant clearances:
+#  Administration → Users → Clearances → edit → search the "GPSFMS - …" feature)
 ```
 
 **Deploy the proxy:**

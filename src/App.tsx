@@ -45,6 +45,7 @@ import { VideoGrid } from "./components/VideoGrid";
 import { VehicleSelect } from "./components/VehicleSelect";
 import { RequestVideoModal } from "./components/RequestVideoModal";
 import { RequestsList } from "./components/RequestsList";
+import { LiveViewModal } from "./components/LiveViewModal";
 import { SAFETY_EVENT_ENTRIES } from "./utils/eventTypes";
 
 interface AppProps {
@@ -93,6 +94,8 @@ export default function App({ api }: AppProps) {
   const [view, setView] = useState<"videos" | "table">("videos");
   const [mode, setMode] = useState<"events" | "requests">("events");
   const [showRequestModal, setShowRequestModal] = useState(false);
+  const [showLiveModal, setShowLiveModal] = useState(false);
+  const [canLiveView, setCanLiveView] = useState(false);
 
   // Deep link from notification emails: #addin-…,eventId:<id> → auto-open clip.
   const deepLinkEventId = useMemo(() => {
@@ -131,6 +134,7 @@ export default function App({ api }: AppProps) {
       .then((r) => {
         if (cancelled) return;
         setVehicles(r.vehicles);
+        setCanLiveView(Boolean(r.canLiveView));
         // Drop the selected vehicle if it's no longer in scope.
         setVehicleHardwareId((cur) =>
           cur && r.vehicles.some((v) => v.hardwareId === cur) ? cur : ""
@@ -211,6 +215,11 @@ export default function App({ api }: AppProps) {
         <Button type="secondary" onClick={() => setShowRequestModal(true)}>
           Request video
         </Button>
+        {canLiveView && (
+          <Button type="secondary" onClick={() => setShowLiveModal(true)}>
+            Live view
+          </Button>
+        )}
         <Button
           type="secondary"
           onClick={() => setMode((m) => (m === "requests" ? "events" : "requests"))}
@@ -226,6 +235,15 @@ export default function App({ api }: AppProps) {
           initialVehicleHardwareId={vehicleHardwareId}
           onClose={() => setShowRequestModal(false)}
           onSubmitted={() => setMode("requests")}
+        />
+      )}
+
+      {showLiveModal && session && (
+        <LiveViewModal
+          session={session}
+          vehicles={vehicles}
+          initialVehicleHardwareId={vehicleHardwareId}
+          onClose={() => setShowLiveModal(false)}
         />
       )}
 

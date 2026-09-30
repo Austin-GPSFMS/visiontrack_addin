@@ -1,7 +1,7 @@
 {
   "name": "VisionTrack Dashboard",
   "supportEmail": "support@gpsfms.com",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "items": [
     {
       "menuId": "GpsfmsVisionTrackMenu",
@@ -49,7 +49,8 @@
   "securityIds": [
     { "name": "gpsfmsCameraView", "en": "GPSFMS - View Camera Dashboard" },
     { "name": "gpsfmsCameraRules", "en": "GPSFMS - Manage Camera Rules" },
-    { "name": "gpsfmsCameraRecipients", "en": "GPSFMS - Manage Camera Recipients" }
+    { "name": "gpsfmsCameraRecipients", "en": "GPSFMS - Manage Camera Recipients" },
+    { "name": "gpsfmsCameraLive", "en": "GPSFMS - View Live Camera Video" }
   ],
   "isSigned": false
 }

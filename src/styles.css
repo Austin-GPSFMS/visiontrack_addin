@@ -1240,6 +1240,45 @@ body {
   color: #6b4b00;
 }
 
+.vt-live-badge {
+  display: inline-block;
+  background: #c43232;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  padding: 2px 7px;
+  border-radius: 4px;
+  vertical-align: middle;
+  margin-right: 6px;
+}
+
+.vt-live-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #c43232;
+  margin-right: 4px;
+  vertical-align: middle;
+  animation: vt-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes vt-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+
+.vt-live-setup {
+  max-width: 560px;
+}
+
+.vt-listchecks--row {
+  display: flex;
+  gap: 18px;
+  flex-wrap: wrap;
+}
+
 .vt-chan-note {
   margin-left: 8px;
   font-size: 11px;
