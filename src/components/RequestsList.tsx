@@ -168,7 +168,10 @@ function RequestCard({ r, onOpen }: { r: VideoRequest; onOpen: (r: VideoRequest)
         </div>
         <div className="vt-card-meta">{fmtClock(r.startIso)}</div>
         <div className="vt-card-meta vt-card-meta--dim vt-card-meta--row">
-          <span>requested {fmt(r.createdAt)}</span>
+          <span title={r.requestedBy ? `Requested by ${r.requestedBy}` : undefined}>
+            requested {fmt(r.createdAt)}
+            {r.requestedBy?.includes("VisionTrack portal") ? " · portal" : ""}
+          </span>
           <span className={st.cls}>{st.text}</span>
         </div>
         {r.error && (
@@ -358,7 +361,8 @@ function RequestClipModal({
             <div className="vt-modal-title">{r.vehicleLabel || r.hardwareId}</div>
             <div className="vt-modal-sub">
               {fmt(r.startIso)} · {r.duration}s · {cameraSummary(r)} · requested{" "}
-              {fmt(r.createdAt)} <span className={st.cls}>{st.text}</span>
+              {fmt(r.createdAt)}
+              {r.requestedBy ? ` by ${r.requestedBy}` : ""} <span className={st.cls}>{st.text}</span>
             </div>
           </div>
           <div className="vt-modal-headbtns">

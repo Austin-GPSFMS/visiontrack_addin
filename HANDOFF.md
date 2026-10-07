@@ -286,6 +286,12 @@ COMPOSITE_CRF=25           # optional x264 quality (lower = better/slower)
 - **Vite `base` must be absolute** (injected, not iframed). Relative paths 404.
 - **VisionTrack pagination is 1‑based** (page=0 → HTTP 500) and **`/events`
   rejects ranges > 72h** — chunk longer windows.
+- **Requests made in the VisionTrack portal/app don't go through the proxy.**
+  `/api/video-requests` therefore syncs `GET /commands?type=7` for the paired
+  org (last 14 days, throttled to once a minute per database) and imports any
+  command id it hasn't stored, labelled "<user> (VisionTrack portal)". The
+  `/commands` field names were mapped defensively (see `syncPortalRequests`);
+  the first sync logs the sample keys — check the journal if imports look empty.
 - **`/channel-labels` is config, not hardware.** A device can carry
   Forward/Driver/Left/Rear labels with only two lenses wired; `/camera-type` is
   too sparse to trust (it hid real cameras in June). `/api/device-channels`

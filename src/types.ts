@@ -424,6 +424,8 @@ export interface GeotabRuleOption {
 /** A submitted custom video request + its status. */
 export interface VideoRequest {
   id: string;
+  /** Who asked — a MyGeotab user, or "<name> (VisionTrack portal)" for imports. */
+  requestedBy?: string;
   vehicleLabel?: string;
   hardwareId: string;
   startIso: string;
