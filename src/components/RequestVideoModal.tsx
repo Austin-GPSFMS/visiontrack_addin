@@ -126,15 +126,16 @@ export function RequestVideoModal({
         </label>
 
         <label className="vt-field">
-          <span>Duration (seconds, max 180)</span>
-          <input
+          <span>Duration</span>
+          <select
             className="vt-input vt-input--narrow"
-            type="number"
-            min={5}
-            max={180}
             value={duration}
-            onChange={(e) => setDuration(Math.min(180, Math.max(5, Number(e.target.value))))}
-          />
+            onChange={(e) => setDuration(Number(e.target.value))}
+          >
+            <option value={30}>30 seconds</option>
+            <option value={60}>1 minute</option>
+            <option value={120}>2 minutes</option>
+          </select>
         </label>
 
         <div className="vt-field">
