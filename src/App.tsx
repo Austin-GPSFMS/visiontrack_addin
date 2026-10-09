@@ -252,6 +252,9 @@ export default function App({ api }: AppProps) {
           session={session}
           vehicles={vehicles}
           initialVehicleHardwareId={vehicleHardwareId}
+          groupsById={groupsById}
+          selectedGroupIds={selectedGroupIds}
+          onGroupsChange={setSelectedGroupIds}
         />
       ) : (
         <>

@@ -11,7 +11,8 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import type React from "react";
-import type { GeotabSession, ScopedVehicle, TrackPoint, VideoRequest, VtMedia } from "../types";
+import type { GeotabGroup, GeotabSession, ScopedVehicle, TrackPoint, VideoRequest, VtMedia } from "../types";
+import { GroupFilterPicker } from "./GroupFilterPicker";
 import {
   downloadRequestComposite,
   fetchDeviceChannels,
@@ -458,12 +459,20 @@ export function RequestsList({
   session,
   vehicles,
   initialVehicleHardwareId = "",
+  groupsById,
+  selectedGroupIds,
+  onGroupsChange,
 }: {
   session: GeotabSession;
-  /** Scoped vehicles for the filter picker (same list as the Dashboard toolbar). */
+  /** Scoped vehicles for the filter picker — already narrowed to the selected
+   *  groups by the Dashboard, so it doubles as the group filter here. */
   vehicles: ScopedVehicle[];
   /** Pre-select the vehicle the user had chosen on the Dashboard. */
   initialVehicleHardwareId?: string;
+  /** Group picker (shared with the Dashboard so the two views stay in sync). */
+  groupsById: Map<string, GeotabGroup>;
+  selectedGroupIds: string[];
+  onGroupsChange: (groupIds: string[]) => void;
 }) {
   const [requests, setRequests] = useState<VideoRequest[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -513,10 +522,16 @@ export function RequestsList({
     if (fresh && fresh !== open) setOpen(fresh);
   }, [requests, open]);
 
-  const filtered = useMemo(
-    () => (vehicleHardwareId ? requests.filter((r) => r.hardwareId === vehicleHardwareId) : requests),
-    [requests, vehicleHardwareId]
-  );
+  // Group filter: the vehicle list is already scoped to the selected groups,
+  // so a request is in view when its camera is in that list. (While the list
+  // is still loading, show everything rather than flashing an empty page.)
+  const inGroups = useMemo(() => new Set(vehicles.map((v) => v.hardwareId)), [vehicles]);
+  const filtered = useMemo(() => {
+    let out = requests;
+    if (vehicles.length > 0) out = out.filter((r) => inGroups.has(r.hardwareId));
+    if (vehicleHardwareId) out = out.filter((r) => r.hardwareId === vehicleHardwareId);
+    return out;
+  }, [requests, vehicles.length, inGroups, vehicleHardwareId]);
 
   // Group by footage date, newest day first; newest clip first within a day.
   const groups = useMemo(() => {
@@ -550,6 +565,12 @@ export function RequestsList({
           onChange={setVehicleHardwareId}
           placeholder="Vehicle: All"
         />
+        <GroupFilterPicker
+          groupsById={groupsById}
+          initialGroupIds={selectedGroupIds}
+          onChange={onGroupsChange}
+          onError={(e) => setError(friendlyError(e))}
+        />
         <span className="vt-scope-note" style={{ margin: 0 }}>
           {filtered.length} request{filtered.length === 1 ? "" : "s"}
           {selectedVehicle ? ` for ${selectedVehicle.geotabDeviceName}` : ""}
@@ -574,7 +595,9 @@ export function RequestsList({
         <div className="vt-empty">
           {requests.length === 0
             ? 'No video requests yet. Use "Request video" to pull footage on demand.'
-            : "No video requests for this vehicle."}
+            : vehicleHardwareId
+              ? "No video requests for this vehicle."
+              : "No video requests for the selected groups."}
         </div>
       ) : (
         groups.map((g) => (
