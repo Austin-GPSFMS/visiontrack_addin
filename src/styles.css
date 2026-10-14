@@ -686,6 +686,51 @@ body {
 .vt-pill--warn { background: #fdf2dc; color: #9c6a00; }
 .vt-pill--bad { background: #fbe5e5; color: #c43232; }
 
+/* ---- Sortable table headers (Watchdog) ---- */
+
+.vt-th-sort {
+  background: none;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  font-weight: 600;
+  color: inherit;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+}
+
+.vt-th-sort:hover {
+  color: var(--vt-navy);
+}
+
+.vt-th-sort--active {
+  color: var(--vt-navy);
+}
+
+.vt-th-caret {
+  font-size: 10px;
+  color: #8a99ad;
+}
+
+.vt-th-sort--active .vt-th-caret {
+  color: var(--vt-navy);
+}
+
+/* Stale timestamp cell: the device the diagnosis points at. */
+.vt-cell-stale {
+  color: #c43232;
+  font-weight: 600;
+}
+
+.vt-gap {
+  display: inline-block;
+  margin-left: 8px;
+  color: #8a99ad;
+}
+
 .vt-subhead {
   font-size: 16px;
   font-weight: 600;
