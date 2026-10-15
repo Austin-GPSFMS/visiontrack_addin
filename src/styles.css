@@ -686,6 +686,36 @@ body {
 .vt-pill--warn { background: #fdf2dc; color: #9c6a00; }
 .vt-pill--bad { background: #fbe5e5; color: #c43232; }
 
+/* ---- Toolbar search box (Device Association) ---- */
+
+.vt-search {
+  position: relative;
+  flex: 1 1 260px;
+  max-width: 420px;
+}
+
+.vt-search .vt-input {
+  width: 100%;
+  padding-right: 28px;
+}
+
+.vt-search-clear {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  border: 0;
+  background: none;
+  color: #8a99ad;
+  cursor: pointer;
+  font-size: 12px;
+  padding: 2px 4px;
+}
+
+.vt-search-clear:hover {
+  color: var(--vt-navy);
+}
+
 /* ---- Sortable table headers (Watchdog) ---- */
 
 .vt-th-sort {

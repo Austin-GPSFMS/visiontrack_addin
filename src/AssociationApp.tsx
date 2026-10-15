@@ -8,7 +8,7 @@
  * vehicle after the Geotab description (not the UK license plate).
  */
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Banner, Button } from "@geotab/zenith";
 import type {
   AssociationRow,
@@ -50,6 +50,8 @@ export default function AssociationApp({ api }: AppProps) {
   const [error, setError] = useState<string | null>(null);
   const [data, setData] = useState<AssociationsResponse | null>(null);
   const [filter, setFilter] = useState<"all" | AssociationRow["status"]>("all");
+  // Free-text search across vehicle, groups, VIN tail, VT VRN/VIN and camera id.
+  const [query, setQuery] = useState("");
   const [exporting, setExporting] = useState(false);
   const [unpairingHw, setUnpairingHw] = useState<string | null>(null);
   // Bumped to force-remount the group picker (e.g. on "Show all vehicles").
@@ -151,8 +153,32 @@ export default function AssociationApp({ api }: AppProps) {
     return <Banner type="error">{bootError}</Banner>;
   }
 
-  const rows =
-    data?.rows.filter((r) => filter === "all" || r.status === filter) ?? [];
+  const q = query.trim().toLowerCase();
+  const matches = useCallback(
+    (r: AssociationRow) =>
+      !q ||
+      [
+        r.geotabDeviceName,
+        r.geotabGroups,
+        r.vinLast6,
+        r.vtVrn,
+        r.vtVin,
+        r.cameraHardwareId,
+        STATUS_META[r.status].label,
+      ].some((v) => (v ?? "").toLowerCase().includes(q)),
+    [q]
+  );
+  const rows = useMemo(
+    () => data?.rows.filter((r) => (filter === "all" || r.status === filter) && matches(r)) ?? [],
+    [data, filter, matches]
+  );
+  const unpaired = useMemo(
+    () =>
+      data?.unpairedCameras.filter(
+        (c) => !q || (c.hardwareId ?? c.id).toLowerCase().includes(q)
+      ) ?? [],
+    [data, q]
+  );
 
   return (
     <div>
@@ -207,6 +233,26 @@ export default function AssociationApp({ api }: AppProps) {
             Show all vehicles
           </Button>
         )}
+        <div className="vt-search">
+          <input
+            type="search"
+            className="vt-input"
+            placeholder="Search vehicle, group, VIN, camera…"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            aria-label="Search associations"
+          />
+          {query && (
+            <button
+              type="button"
+              className="vt-search-clear"
+              onClick={() => setQuery("")}
+              aria-label="Clear search"
+            >
+              ✕
+            </button>
+          )}
+        </div>
       </div>
 
       {error && (
@@ -252,6 +298,12 @@ export default function AssociationApp({ api }: AppProps) {
             </button>
           </div>
 
+          {q && (
+            <p className="vt-scope-note">
+              {rows.length} of {data.rows.length} vehicle{data.rows.length === 1 ? "" : "s"} match
+              {" "}"{query.trim()}".
+            </p>
+          )}
           <table className="vt-table">
             <thead>
               <tr>
@@ -298,7 +350,7 @@ export default function AssociationApp({ api }: AppProps) {
               {rows.length === 0 && (
                 <tr>
                   <td colSpan={data.canManage ? 7 : 6} className="vt-table-empty">
-                    Nothing matches this filter.
+                    {q ? `Nothing matches "${query.trim()}".` : "Nothing matches this filter."}
                   </td>
                 </tr>
               )}
@@ -313,7 +365,7 @@ export default function AssociationApp({ api }: AppProps) {
             These cameras aren't attached to any VisionTrack vehicle, so they
             produce no vehicle-attributable events. Org-wide list.
           </p>
-          {data.unpairedCameras.length > 0 ? (
+          {unpaired.length > 0 ? (
             <table className="vt-table">
               <thead>
                 <tr>
@@ -323,7 +375,7 @@ export default function AssociationApp({ api }: AppProps) {
                 </tr>
               </thead>
               <tbody>
-                {data.unpairedCameras.map((c) => (
+                {unpaired.map((c) => (
                   <tr key={c.id}>
                     <td>{c.hardwareId ?? c.id}</td>
                     <td>
@@ -337,7 +389,11 @@ export default function AssociationApp({ api }: AppProps) {
               </tbody>
             </table>
           ) : (
-            <p className="vt-scope-note">None — every camera is assigned.</p>
+            <p className="vt-scope-note">
+              {q && data.unpairedCameras.length > 0
+                ? `No unassigned cameras match "${query.trim()}".`
+                : "None — every camera is assigned."}
+            </p>
           )}
         </>
       )}
