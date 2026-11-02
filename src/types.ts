@@ -348,10 +348,16 @@ export interface WatchdogRow {
   lastIgnitionOff: string | null;
   /** Last trip stop in the past 7 days (null = didn't drive). */
   lastTripStop: string | null;
-  /** Ignition-ons after the camera's last report (raw). */
+  /** Ignition currently on (open cycle) per the GO. */
+  ignitionOnNow?: boolean;
+  /** Ignition cycles that began after the camera's last report (raw, incl. blips). */
   ignitionOnsSinceCamera: number;
-  /** Same, excluding ones too recent to have uploaded yet — the fault signal. */
+  /** Of those, cycles too short to be a real start (voltage blips) — not counted. */
+  shortCyclesIgnored?: number;
+  /** Real cycles after the camera's last report, old enough to have uploaded — the fault signal. */
   missedIgnitionOns: number;
+  /** Hours of ignition-on after the camera's last report (up to the grace cutoff). */
+  ignitionHoursSinceCamera?: number;
   /** How far back the proxy searched for ignition: 7, 30 or 90 days. */
   ignitionLookbackDays: number;
 }
@@ -362,6 +368,7 @@ export interface WatchdogResponse {
   /** false = the ignition query failed; diagnosis falls back to timestamps. */
   ignitionAvailable?: boolean;
   cameraUploadGraceHours?: number;
+  minIgnitionCycleMinutes?: number;
 }
 
 // ---- GPS vs Camera location report ----

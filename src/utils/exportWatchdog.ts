@@ -27,7 +27,7 @@ export async function exportWatchdog(
   rows: WatchdogRowView[],
   opts: {
     database: string;
-    missedThreshold: number;
+    thresholdLabel: string;
     goStaleHours: number;
     siteFilter: string;
     diagnosisFilter: string;
@@ -44,7 +44,7 @@ export async function exportWatchdog(
   meta.addRows([
     ["Report", "VisionTrack Watchdog (camera / GO device health)"],
     ["Database", opts.database],
-    ["Camera flagged after", `${opts.missedThreshold} missed ignition cycle(s)`],
+    ["Camera flagged after", opts.thresholdLabel],
     ["GO stale threshold", `${opts.goStaleHours} hours`],
     ["Site filter", opts.siteFilter],
     ["Diagnosis filter", opts.diagnosisFilter],
@@ -74,8 +74,10 @@ export async function exportWatchdog(
     { header: "Last ignition on", key: "ignOn" },
     { header: "Last ignition off", key: "ignOff" },
     { header: "Last drove (trip stop)", key: "trip" },
-    { header: "Ignition-ons since camera", key: "since" },
+    { header: "Ignition cycles since camera", key: "since" },
+    { header: "Blips ignored (< 2 min)", key: "short" },
     { header: "Missed cycles (counted)", key: "missed" },
+    { header: "Hours ran w/o camera report", key: "hours" },
     { header: "GO last comm", key: "go" },
     { header: "GO days silent", key: "goDays" },
     { header: "Diagnosis", key: "diagnosis" },
@@ -93,7 +95,9 @@ export async function exportWatchdog(
       ignOff: r.lastIgnitionOff ? fmt(r.lastIgnitionOff) : "",
       trip: r.lastTripStop ? fmt(r.lastTripStop) : "",
       since: r.ignitionOnsSinceCamera,
+      short: r.shortCyclesIgnored ?? 0,
       missed: r.missedIgnitionOns,
+      hours: r.ignitionHoursSinceCamera ?? 0,
       go: fmt(r.geotabLastComm),
       goDays: daysSince(r.geotabLastComm),
       diagnosis: DIAGNOSIS_META[r.diagnosis].label,
@@ -104,7 +108,7 @@ export async function exportWatchdog(
     c.font = HEADER_FONT;
   });
   sheet.views = [{ state: "frozen", ySplit: 1 }];
-  sheet.autoFilter = { from: "A1", to: "O1" };
+  sheet.autoFilter = { from: "A1", to: "Q1" };
   // Open on the data sheet (index 1), not the metadata sheet.
   wb.views = [
     { x: 0, y: 0, width: 20000, height: 16000, firstSheet: 0, activeTab: 1, visibility: "visible" },

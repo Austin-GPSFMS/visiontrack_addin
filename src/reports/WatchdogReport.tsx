@@ -29,13 +29,21 @@ import { friendlyError } from "../api/geotab";
 import { fetchWatchdog } from "../api/proxy";
 import { exportWatchdog } from "../utils/exportWatchdog";
 
-/** "Flag the camera after this many missed ignition cycles." */
-const MISSED_OPTIONS: Array<{ label: string; n: number }> = [
-  { label: "1 ignition cycle", n: 1 },
-  { label: "2 ignition cycles", n: 2 },
-  { label: "3 ignition cycles", n: 3 },
-  { label: "5 ignition cycles", n: 5 },
+/** "Flag the camera after …" — either N real ignition cycles missed, or N hours
+ *  of ignition-on with no camera report. Hours are harder to fool on equipment
+ *  whose GO infers ignition from voltage. Encoded as "c:N" / "h:N". */
+export type CameraThreshold = { kind: "cycles" | "hours"; value: number };
+const THRESHOLD_OPTIONS: Array<{ key: string; label: string; t: CameraThreshold }> = [
+  { key: "c:1", label: "1 ignition cycle missed", t: { kind: "cycles", value: 1 } },
+  { key: "c:2", label: "2 ignition cycles missed", t: { kind: "cycles", value: 2 } },
+  { key: "c:3", label: "3 ignition cycles missed", t: { kind: "cycles", value: 3 } },
+  { key: "c:5", label: "5 ignition cycles missed", t: { kind: "cycles", value: 5 } },
+  { key: "h:1", label: "1 h running, no report", t: { kind: "hours", value: 1 } },
+  { key: "h:2", label: "2 h running, no report", t: { kind: "hours", value: 2 } },
+  { key: "h:4", label: "4 h running, no report", t: { kind: "hours", value: 4 } },
+  { key: "h:8", label: "8 h running, no report", t: { kind: "hours", value: 8 } },
 ];
+const DEFAULT_THRESHOLD_KEY = "c:2";
 
 /** A GO that hasn't communicated in this long is stale — a healthy GO
  *  heartbeats within hours even while the vehicle is parked. */
@@ -108,7 +116,13 @@ function fmtExact(iso: string | null): string {
   return Number.isNaN(d.getTime()) ? iso : d.toLocaleString();
 }
 
-export function diagnose(r: WatchdogRow, missedThreshold: number): Diagnosis {
+function cameraMissed(r: WatchdogRow, t: CameraThreshold): boolean {
+  return t.kind === "hours"
+    ? (r.ignitionHoursSinceCamera ?? 0) >= t.value
+    : r.missedIgnitionOns >= t.value;
+}
+
+export function diagnose(r: WatchdogRow, threshold: CameraThreshold): Diagnosis {
   const go = hoursSince(r.geotabLastComm);
   const goStale = go == null || go > GO_STALE_HOURS;
   const cameraAfterGo =
@@ -117,7 +131,7 @@ export function diagnose(r: WatchdogRow, missedThreshold: number): Diagnosis {
     new Date(r.cameraLastReported).getTime() - new Date(r.geotabLastComm).getTime() >
       CAMERA_AFTER_GO_HOURS * 3_600_000;
   const goIssue = goStale || cameraAfterGo;
-  const camIssue = r.missedIgnitionOns >= missedThreshold;
+  const camIssue = cameraMissed(r, threshold);
 
   if (camIssue && goIssue) return "cameraGo";
   if (camIssue) return "camera";
@@ -132,7 +146,7 @@ export interface WatchdogRowView extends WatchdogRow {
   diagnosis: Diagnosis;
 }
 
-type SortCol = "vehicle" | "site" | "groups" | "camera" | "ignition" | "go" | "missed" | "diagnosis";
+type SortCol = "vehicle" | "site" | "groups" | "camera" | "ignition" | "go" | "missed" | "hours" | "diagnosis";
 interface SortState {
   col: SortCol;
   dir: 1 | -1;
@@ -173,6 +187,9 @@ function compareRows(a: WatchdogRowView, b: WatchdogRowView, sort: SortState): n
       break;
     case "missed":
       c = b.missedIgnitionOns - a.missedIgnitionOns; // most missed first
+      break;
+    case "hours":
+      c = (b.ignitionHoursSinceCamera ?? 0) - (a.ignitionHoursSinceCamera ?? 0);
       break;
     case "diagnosis":
       c = DIAG_ORDER[a.diagnosis] - DIAG_ORDER[b.diagnosis];
@@ -220,7 +237,12 @@ export function WatchdogReport({ session }: { session: GeotabSession }) {
   const [generatedAt, setGeneratedAt] = useState<string | null>(null);
   const [ignitionAvailable, setIgnitionAvailable] = useState(true);
   const [graceHours, setGraceHours] = useState(2);
-  const [missedThreshold, setMissedThreshold] = useState(2);
+  const [minCycleMin, setMinCycleMin] = useState(2);
+  const [thresholdKey, setThresholdKey] = useState(DEFAULT_THRESHOLD_KEY);
+  const threshold = useMemo(
+    () => THRESHOLD_OPTIONS.find((o) => o.key === thresholdKey)?.t ?? { kind: "cycles" as const, value: 2 },
+    [thresholdKey]
+  );
   const [diagFilter, setDiagFilter] = useState<DiagFilter>("issues");
   const [siteFilter, setSiteFilter] = useState<string>("");
   const [sort, setSort] = useState<SortState>({ col: "site", dir: 1 });
@@ -235,6 +257,7 @@ export function WatchdogReport({ session }: { session: GeotabSession }) {
       setGeneratedAt(r.generatedAt);
       setIgnitionAvailable(r.ignitionAvailable !== false);
       if (r.cameraUploadGraceHours) setGraceHours(r.cameraUploadGraceHours);
+      if (r.minIgnitionCycleMinutes) setMinCycleMin(r.minIgnitionCycleMinutes);
     } catch (e) {
       setError(friendlyError(e));
     } finally {
@@ -253,9 +276,9 @@ export function WatchdogReport({ session }: { session: GeotabSession }) {
       rows.map((r) => ({
         ...r,
         site: siteOf(r.geotabGroups),
-        diagnosis: diagnose(r, missedThreshold),
+        diagnosis: diagnose(r, threshold),
       })),
-    [rows, missedThreshold]
+    [rows, threshold]
   );
 
   const sites = useMemo(() => {
@@ -296,7 +319,7 @@ export function WatchdogReport({ session }: { session: GeotabSession }) {
     try {
       await exportWatchdog(shown, {
         database: session.database,
-        missedThreshold,
+        thresholdLabel: THRESHOLD_OPTIONS.find((o) => o.key === thresholdKey)?.label ?? thresholdKey,
         goStaleHours: GO_STALE_HOURS,
         siteFilter: siteFilter || "All sites",
         diagnosisFilter:
@@ -308,7 +331,7 @@ export function WatchdogReport({ session }: { session: GeotabSession }) {
     } finally {
       setExporting(false);
     }
-  }, [shown, session.database, missedThreshold, siteFilter, diagFilter, generatedAt]);
+  }, [shown, session.database, thresholdKey, siteFilter, diagFilter, generatedAt]);
 
   const tile = (key: DiagFilter, label: string, n: number, cls = "") => (
     <button
@@ -330,13 +353,17 @@ export function WatchdogReport({ session }: { session: GeotabSession }) {
         : `No ignition-on in the last ${r.ignitionLookbackDays} days`
     );
     if (r.lastIgnitionOff) parts.push(`Last ignition off: ${fmtExact(r.lastIgnitionOff)}`);
+    if (r.ignitionOnNow) parts.push("Ignition is on right now");
     parts.push(r.lastTripStop ? `Last drove: ${fmtExact(r.lastTripStop)}` : "No trips in the last 7 days");
+    const short = r.shortCyclesIgnored ?? 0;
+    const pending = r.ignitionOnsSinceCamera - short - r.missedIgnitionOns;
     parts.push(
-      `${r.ignitionOnsSinceCamera} ignition-on${r.ignitionOnsSinceCamera === 1 ? "" : "s"} since the camera last reported` +
-        (r.ignitionOnsSinceCamera !== r.missedIgnitionOns
-          ? ` (${r.missedIgnitionOns} counted — the rest are within the ${graceHours} h upload grace)`
-          : "")
+      `${r.ignitionOnsSinceCamera} ignition cycle${r.ignitionOnsSinceCamera === 1 ? "" : "s"} since the camera last reported: ` +
+        `${r.missedIgnitionOns} counted as missed` +
+        (short > 0 ? `, ${short} ignored as voltage blips (< ${minCycleMin} min)` : "") +
+        (pending > 0 ? `, ${pending} still inside the ${graceHours} h upload grace` : "")
     );
+    parts.push(`${(r.ignitionHoursSinceCamera ?? 0).toFixed(1)} h of ignition-on with no camera report`);
     return parts.join("\n");
   };
 
@@ -364,13 +391,20 @@ export function WatchdogReport({ session }: { session: GeotabSession }) {
           <span>Flag camera after</span>
           <select
             className="vt-input"
-            value={missedThreshold}
-            onChange={(e) => setMissedThreshold(Number(e.target.value))}
-            title="How many ignition-ons the camera can sleep through before it's called a fault"
+            value={thresholdKey}
+            onChange={(e) => setThresholdKey(e.target.value)}
+            title="How much the vehicle can run after the camera's last report before the camera is called a fault"
           >
-            {MISSED_OPTIONS.map((o) => (
-              <option key={o.n} value={o.n}>{o.label} missed</option>
-            ))}
+            <optgroup label="By ignition cycles">
+              {THRESHOLD_OPTIONS.filter((o) => o.t.kind === "cycles").map((o) => (
+                <option key={o.key} value={o.key}>{o.label}</option>
+              ))}
+            </optgroup>
+            <optgroup label="By hours of running">
+              {THRESHOLD_OPTIONS.filter((o) => o.t.kind === "hours").map((o) => (
+                <option key={o.key} value={o.key}>{o.label}</option>
+              ))}
+            </optgroup>
           </select>
         </label>
         <label className="vt-field" style={{ marginBottom: 0 }}>
@@ -415,8 +449,8 @@ export function WatchdogReport({ session }: { session: GeotabSession }) {
             Showing <strong>{shown.length}</strong> of {counts.all} vehicle
             {counts.all === 1 ? "" : "s"}
             {siteFilter ? ` at ${siteFilter === NO_SITE ? "no site group" : siteFilter}` : ""} · camera
-            flagged after {missedThreshold} missed ignition cycle{missedThreshold === 1 ? "" : "s"} ({graceHours} h
-            upload grace) · GO flagged after {GO_STALE_HOURS} h.
+            flagged after {THRESHOLD_OPTIONS.find((o) => o.key === thresholdKey)?.label.toLowerCase()} ({graceHours} h
+            upload grace, cycles under {minCycleMin} min ignored) · GO flagged after {GO_STALE_HOURS} h.
           </p>
 
           <table className="vt-table">
@@ -438,7 +472,14 @@ export function WatchdogReport({ session }: { session: GeotabSession }) {
                   label="Missed cycles"
                   sort={sort}
                   onSort={onSort}
-                  title="Ignition-ons since the camera last reported (excluding ones still inside the upload grace)"
+                  title="Real ignition cycles (≥ 2 min) since the camera last reported, excluding ones still inside the upload grace"
+                />
+                <SortHeader
+                  col="hours"
+                  label="Ran w/o report"
+                  sort={sort}
+                  onSort={onSort}
+                  title="Hours of ignition-on since the camera last reported"
                 />
                 <SortHeader col="go" label="GO last comm" sort={sort} onSort={onSort} />
                 <SortHeader col="diagnosis" label="Diagnosis" sort={sort} onSort={onSort} />
@@ -453,6 +494,8 @@ export function WatchdogReport({ session }: { session: GeotabSession }) {
                   .filter((g) => g && g !== r.site)
                   .join(", ");
                 const camBad = r.diagnosis === "camera" || r.diagnosis === "cameraGo";
+                const hrs = r.ignitionHoursSinceCamera ?? 0;
+                const pending = r.ignitionOnsSinceCamera - (r.shortCyclesIgnored ?? 0) - r.missedIgnitionOns;
                 const goBad = r.diagnosis === "go" || r.diagnosis === "cameraGo";
                 return (
                   <tr key={(r.hardwareId ?? "") + r.geotabDeviceName}>
@@ -475,13 +518,14 @@ export function WatchdogReport({ session }: { session: GeotabSession }) {
                     <td className={camBad ? "vt-cell-stale" : ""} title={ignitionTitle(r)}>
                       {r.missedIgnitionOns > 0 ? (
                         r.missedIgnitionOns
-                      ) : r.ignitionOnsSinceCamera > 0 ? (
-                        <span className="vt-muted" title={`${r.ignitionOnsSinceCamera} inside the ${graceHours} h upload grace`}>
-                          0 ({r.ignitionOnsSinceCamera} pending)
-                        </span>
+                      ) : pending > 0 ? (
+                        <span className="vt-muted">0 ({pending} pending)</span>
                       ) : (
                         <span className="vt-muted">0</span>
                       )}
+                    </td>
+                    <td className={camBad ? "vt-cell-stale" : ""} title={ignitionTitle(r)}>
+                      {hrs > 0 ? `${hrs.toFixed(1)} h` : <span className="vt-muted">—</span>}
                     </td>
                     <td className={goBad ? "vt-cell-stale" : ""} title={fmtExact(r.geotabLastComm)}>
                       {fmtAgo(r.geotabLastComm)}
@@ -496,7 +540,7 @@ export function WatchdogReport({ session }: { session: GeotabSession }) {
               })}
               {shown.length === 0 && (
                 <tr>
-                  <td colSpan={8} className="vt-table-empty">
+                  <td colSpan={9} className="vt-table-empty">
                     {counts.all === 0
                       ? "No vehicles in scope."
                       : diagFilter === "issues"
