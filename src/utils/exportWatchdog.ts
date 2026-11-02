@@ -27,7 +27,7 @@ export async function exportWatchdog(
   rows: WatchdogRowView[],
   opts: {
     database: string;
-    thresholdLabel: string;
+    missedThreshold: number;
     goStaleHours: number;
     siteFilter: string;
     diagnosisFilter: string;
@@ -37,14 +37,14 @@ export async function exportWatchdog(
   const wb = new ExcelJS.Workbook();
   wb.created = new Date();
 
-  const counts = { camera: 0, go: 0, both: 0, ok: 0 };
+  const counts = { camera: 0, go: 0, cameraGo: 0, parked: 0, ok: 0 };
   for (const r of rows) counts[r.diagnosis]++;
 
   const meta = wb.addWorksheet("Report Metadata");
   meta.addRows([
     ["Report", "VisionTrack Watchdog (camera / GO device health)"],
     ["Database", opts.database],
-    ["Camera offline threshold", opts.thresholdLabel],
+    ["Camera flagged after", `${opts.missedThreshold} missed ignition cycle(s)`],
     ["GO stale threshold", `${opts.goStaleHours} hours`],
     ["Site filter", opts.siteFilter],
     ["Diagnosis filter", opts.diagnosisFilter],
@@ -53,7 +53,8 @@ export async function exportWatchdog(
     [],
     ["Camera issue", counts.camera, DIAGNOSIS_META.camera.hint],
     ["GO issue", counts.go, DIAGNOSIS_META.go.hint],
-    ["Both silent", counts.both, DIAGNOSIS_META.both.hint],
+    ["Camera + GO", counts.cameraGo, DIAGNOSIS_META.cameraGo.hint],
+    ["Parked", counts.parked, DIAGNOSIS_META.parked.hint],
     ["OK", counts.ok, DIAGNOSIS_META.ok.hint],
   ]);
   meta.getColumn(1).font = { bold: true };
@@ -70,6 +71,11 @@ export async function exportWatchdog(
     { header: "Camera serial", key: "camera" },
     { header: "Camera last reported", key: "cam" },
     { header: "Camera days silent", key: "camDays" },
+    { header: "Last ignition on", key: "ignOn" },
+    { header: "Last ignition off", key: "ignOff" },
+    { header: "Last drove (trip stop)", key: "trip" },
+    { header: "Ignition-ons since camera", key: "since" },
+    { header: "Missed cycles (counted)", key: "missed" },
     { header: "GO last comm", key: "go" },
     { header: "GO days silent", key: "goDays" },
     { header: "Diagnosis", key: "diagnosis" },
@@ -83,6 +89,11 @@ export async function exportWatchdog(
       camera: r.hardwareId ?? "",
       cam: fmt(r.cameraLastReported),
       camDays: daysSince(r.cameraLastReported),
+      ignOn: r.lastIgnitionOn ? fmt(r.lastIgnitionOn) : `None in ${r.ignitionLookbackDays} d`,
+      ignOff: r.lastIgnitionOff ? fmt(r.lastIgnitionOff) : "",
+      trip: r.lastTripStop ? fmt(r.lastTripStop) : "",
+      since: r.ignitionOnsSinceCamera,
+      missed: r.missedIgnitionOns,
       go: fmt(r.geotabLastComm),
       goDays: daysSince(r.geotabLastComm),
       diagnosis: DIAGNOSIS_META[r.diagnosis].label,
@@ -93,7 +104,7 @@ export async function exportWatchdog(
     c.font = HEADER_FONT;
   });
   sheet.views = [{ state: "frozen", ySplit: 1 }];
-  sheet.autoFilter = { from: "A1", to: "J1" };
+  sheet.autoFilter = { from: "A1", to: "O1" };
   // Open on the data sheet (index 1), not the metadata sheet.
   wb.views = [
     { x: 0, y: 0, width: 20000, height: 16000, firstSheet: 0, activeTab: 1, visibility: "visible" },

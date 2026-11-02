@@ -339,13 +339,29 @@ export interface WatchdogRow {
   vrn?: string;
   geotabGroups: string;
   hardwareId?: string;
+  /** GO device's last communication (heartbeats while parked). */
   geotabLastComm: string | null;
+  /** Camera's last report — a 3-wire camera only has power with ignition on. */
   cameraLastReported: string | null;
+  /** GO ignition history: the camera-power baseline. null = none in lookback. */
+  lastIgnitionOn: string | null;
+  lastIgnitionOff: string | null;
+  /** Last trip stop in the past 7 days (null = didn't drive). */
+  lastTripStop: string | null;
+  /** Ignition-ons after the camera's last report (raw). */
+  ignitionOnsSinceCamera: number;
+  /** Same, excluding ones too recent to have uploaded yet — the fault signal. */
+  missedIgnitionOns: number;
+  /** How far back the proxy searched for ignition: 7, 30 or 90 days. */
+  ignitionLookbackDays: number;
 }
 
 export interface WatchdogResponse {
   rows: WatchdogRow[];
   generatedAt: string;
+  /** false = the ignition query failed; diagnosis falls back to timestamps. */
+  ignitionAvailable?: boolean;
+  cameraUploadGraceHours?: number;
 }
 
 // ---- GPS vs Camera location report ----
