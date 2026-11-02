@@ -237,7 +237,7 @@ export function WatchdogReport({ session }: { session: GeotabSession }) {
   const [generatedAt, setGeneratedAt] = useState<string | null>(null);
   const [ignitionAvailable, setIgnitionAvailable] = useState(true);
   const [graceHours, setGraceHours] = useState(2);
-  const [minCycleMin, setMinCycleMin] = useState(2);
+  const [minCycleMin, setMinCycleMin] = useState(5);
   const [thresholdKey, setThresholdKey] = useState(DEFAULT_THRESHOLD_KEY);
   const threshold = useMemo(
     () => THRESHOLD_OPTIONS.find((o) => o.key === thresholdKey)?.t ?? { kind: "cycles" as const, value: 2 },
@@ -472,7 +472,7 @@ export function WatchdogReport({ session }: { session: GeotabSession }) {
                   label="Missed cycles"
                   sort={sort}
                   onSort={onSort}
-                  title="Real ignition cycles (≥ 2 min) since the camera last reported, excluding ones still inside the upload grace"
+                  title="Real ignition cycles (≥ 5 min) since the camera last reported, excluding ones still inside the upload grace"
                 />
                 <SortHeader
                   col="hours"

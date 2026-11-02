@@ -75,7 +75,7 @@ export async function exportWatchdog(
     { header: "Last ignition off", key: "ignOff" },
     { header: "Last drove (trip stop)", key: "trip" },
     { header: "Ignition cycles since camera", key: "since" },
-    { header: "Blips ignored (< 2 min)", key: "short" },
+    { header: "Blips ignored (< 5 min)", key: "short" },
     { header: "Missed cycles (counted)", key: "missed" },
     { header: "Hours ran w/o camera report", key: "hours" },
     { header: "GO last comm", key: "go" },
